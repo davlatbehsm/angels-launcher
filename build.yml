@@ -1,0 +1,53 @@
+name: Build Angels Launcher
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install pyinstaller
+    
+    - name: Get version from script
+      id: get_version
+      shell: python
+      run: |
+        import re, os
+        with open('angels_launcher.py', 'r', encoding='utf-8') as f:
+            content = f.read()
+        match = re.search(r'LAUNCHER_VER\s*=\s*"([^"]+)"', content)
+        version = match.group(1) if match else "0.0"
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f"version={version}\n")
+    
+    - name: Build EXE
+      run: |
+        pyinstaller --onefile --noconsole --name "AngelsLauncher" angels_launcher.py
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.get_version.outputs.version }}
+        name: Angels Launcher v${{ steps.get_version.outputs.version }}
+        body: |
+          Автоматическая сборка Angels Launcher v${{ steps.get_version.outputs.version }}
+          
+          Для обновления нажми кнопку **"Обновить"** в лаунчере.
+        files: dist/AngelsLauncher.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
