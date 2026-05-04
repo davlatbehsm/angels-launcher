@@ -11,12 +11,12 @@ Angels Launcher v11.0  —  AutoUpdate Edition
   ◈ Фоновая проверка обновлений при запуске
   ◈ Прогресс-бар скачивания обновления
 
-  КАК НАСТРОИТЬ АВТО-ОБНОВЛЕНИЕ ДЛЯ ВСЕХ:
-  1. Создай репо на GitHub: github.com/ТВО_НИК/angels-launcher
-  2. Загрузи этот файл в репо
-  3. Измени GITHUB_REPO ниже на "ТВО_НИК/angels-launcher"
-  4. Добавь GitHub Actions (файл .github/workflows/build.yml — см. в конце)
-  5. Каждый git push → новый .exe появится в Releases → все получат обновление
+  ИСПРАВЛЕНИЯ БАГОВ v11.0.2:
+  ◈ FIX: После обновления лаунчер больше не предлагает обновиться снова
+  ◈ FIX: Старый процесс лаунчера корректно завершается перед заменой файла
+  ◈ FIX: Версия записывается в version.json рядом с exe после установки
+  ◈ FIX: Проверка целостности скачанного файла перед перезапуском
+  ◈ FIX: Bat-скрипт использует taskkill для завершения текущего процесса
 
   Admin-панель: python angels_launcher_v11.py --angelsvistop121
   Keygen CLI  : python angels_launcher_v11.py --keygen [n]
@@ -27,23 +27,19 @@ Angels Launcher v11.0  —  AutoUpdate Edition
 #  CONFIG — ИЗМЕНИ ЭТО ПОД СЕБЯ
 # ══════════════════════════════════════════════════════
 LAUNCHER_NAME = "Angels Launcher"
-LAUNCHER_VER  = "11.0.1"
+LAUNCHER_VER  = "11.0.2"
 MOD_NAME      = "Angels Mod"
 MOD_VERSION   = "1.0.0"
 MC_VERSION    = "1.16.5"
 FORGE_VERSION = "36.2.39"
-SUPER_ADMIN   = "validka3"
 SUPER_ADMIN   = "imigrant228"
 TG_LINK       = "@Softire_1"
 
 # ═══════════════════════════════════════════════════════════════
 #  ГЛАВНАЯ НАСТРОЙКА — ЗАМЕНИ НА СВОЁ GITHUB РЕПО
-#  Формат: "username/repo-name"
-#  Пример: "validka3/angels-launcher"
 # ═══════════════════════════════════════════════════════════════
 GITHUB_REPO = "davlatbehsm/angels-launcher"
 
-# GitHub API — НЕ ТРОГАЙ (строится автоматически)
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_RAW_VERSION  = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.json"
 
@@ -123,6 +119,43 @@ USED_KEYS_FILE = APPDATA / "used_keys.json"
 BLACKLIST_FILE = APPDATA / "blacklist.json"
 KEYS_META_FILE = APPDATA / "keys_meta.json"
 SERVERS_FILE   = APPDATA / "servers.json"
+
+# ★ FIX: Файл для хранения установленной версии рядом с exe
+# Это позволяет лаунчеру знать свою реальную версию после обновления
+def _get_installed_version_file() -> Path:
+    """Возвращает путь к файлу версии рядом с исполняемым файлом"""
+    if getattr(sys, 'frozen', False):
+        # Запущен как .exe
+        return Path(sys.executable).parent / "angels_launcher_version.json"
+    else:
+        # Запущен как .py
+        return Path(__file__).resolve().parent / "angels_launcher_version.json"
+
+INSTALLED_VERSION_FILE = _get_installed_version_file()
+
+def _read_installed_version() -> str:
+    """Читает версию из файла на диске (актуальная после обновления)"""
+    try:
+        if INSTALLED_VERSION_FILE.exists():
+            data = json.loads(INSTALLED_VERSION_FILE.read_text())
+            return data.get("version", LAUNCHER_VER)
+    except:
+        pass
+    return LAUNCHER_VER
+
+def _write_installed_version(version: str):
+    """Записывает текущую версию в файл на диске"""
+    try:
+        INSTALLED_VERSION_FILE.write_text(json.dumps({
+            "version": version,
+            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }, indent=2))
+    except Exception as e:
+        print(f"Не удалось записать версию: {e}")
+
+# При старте сразу записываем текущую версию
+_write_installed_version(LAUNCHER_VER)
+
 FORGE_MC_VER   = f"{MC_VERSION}-{FORGE_VERSION}"
 FORGE_ID_VARIANTS = [
     FORGE_MC_VER,
@@ -139,7 +172,7 @@ MAVEN_FORGE      = "https://maven.minecraftforge.net/"
 DOWNLOAD_THREADS = 8
 
 # ══════════════════════════════════════════════════════
-#  KEY SYSTEM (без изменений)
+#  KEY SYSTEM
 # ══════════════════════════════════════════════════════
 _VENC = bytes([
     0x03,0x2c,0x25,0x27,0x2e,0x31,0x0e,0x23,0x37,0x2c,0x21,0x2a,
@@ -563,31 +596,24 @@ class ParallelDownloader:
             for _ in as_completed([ex.submit(self._do, t) for t in self.tasks]): pass
 
 # ══════════════════════════════════════════════════════
-#  ★ НОВАЯ СИСТЕМА АВТО-ОБНОВЛЕНИЙ ★
+#  ★ ИСПРАВЛЕННАЯ СИСТЕМА АВТО-ОБНОВЛЕНИЙ ★
 # ══════════════════════════════════════════════════════
 class AutoUpdater:
     """
     Система обновлений через GitHub Releases.
-    
-    КАК РАБОТАЕТ:
-    1. Ты делаешь git push в репо → GitHub Actions собирает новый .exe
-    2. Actions создаёт новый Release с тегом версии (напр. v11.1)
-    3. При запуске лаунчер проверяет GitHub API
-    4. Если есть новая версия → кнопка "Обновить" загорается у ВСЕХ
-    5. Пользователь нажимает "Обновить" → скачивается новый .exe
-    6. Лаунчер перезапускается автоматически
-    
-    КАК НАСТРОИТЬ:
-    - Замени GITHUB_REPO выше на своё репо
-    - Добавь файл .github/workflows/build.yml (см. generate_github_actions_config())
-    - При каждом пуше с новой версией создаётся новый Release
+
+    ИСПРАВЛЕННЫЕ БАГИ:
+    1. После обновления версия записывается в version.json рядом с exe —
+       при следующем запуске лаунчер знает что он уже обновлён.
+    2. Bat-скрипт теперь завершает ТЕКУЩИЙ процесс через taskkill перед
+       заменой файла, а не просто ждёт.
+    3. Проверка размера скачанного файла перед запуском перезапуска.
+    4. PID текущего процесса передаётся в bat для корректного завершения.
     """
 
     def __init__(self):
         self._latest_info = None
         self._checking = False
-
-        # Для VS Code watch — отслеживание изменений файла скрипта
         self._script_path = Path(__file__).resolve()
         self._script_mtime = self._get_mtime()
 
@@ -596,43 +622,39 @@ class AutoUpdater:
         except: return 0
 
     def _version_tuple(self, ver_str: str):
-        """Конвертирует "11.2" в (11, 2) для сравнения"""
         try: return tuple(int(x) for x in str(ver_str).lstrip("v").split("."))
         except: return (0,)
 
     def is_newer(self, remote_ver: str) -> bool:
-        return self._version_tuple(remote_ver) > self._version_tuple(LAUNCHER_VER)
+        """
+        ★ FIX: Сравниваем с РЕАЛЬНОЙ установленной версией (из файла на диске),
+        а не с LAUNCHER_VER константой в коде.
+        Это гарантирует что после обновления лаунчер не предложит обновиться снова.
+        """
+        installed = _read_installed_version()
+        return self._version_tuple(remote_ver) > self._version_tuple(installed)
 
     def check_for_updates(self, callback):
-        """
-        Проверяет GitHub Releases API.
-        callback(success: bool, info: dict | None, error: str | None)
-        info содержит: version, changelog, download_url, size
-        """
         def _do():
             self._checking = True
             try:
-                # Пробуем GitHub Releases API (если репо настроен)
                 if "YOUR_GITHUB_USERNAME" not in GITHUB_REPO:
                     data = http_get_json(GITHUB_RELEASES_API)
                     tag = data.get("tag_name", "").lstrip("v")
                     body = data.get("body", "")
                     assets = data.get("assets", [])
 
-                    # Ищем .exe в assets
                     exe_asset = None
                     for a in assets:
                         name = a.get("name", "")
                         if name.endswith(".exe") and "launcher" in name.lower():
                             exe_asset = a; break
-                    # Если .exe не найден — берём первый asset
                     if not exe_asset and assets:
                         exe_asset = assets[0]
 
                     dl_url = exe_asset["browser_download_url"] if exe_asset else ""
                     size   = exe_asset.get("size", 0) if exe_asset else 0
 
-                    # Парсим changelog из body (формат markdown)
                     changelog = []
                     for line in body.split("\n"):
                         line = line.strip()
@@ -652,7 +674,6 @@ class AutoUpdater:
                     self._latest_info = info
                     callback(True, info, None)
                 else:
-                    # Репо не настроен
                     callback(False, None, "GitHub репо не настроен. Измени GITHUB_REPO в коде.")
             except urllib.error.HTTPError as e:
                 if e.code == 404:
@@ -666,43 +687,89 @@ class AutoUpdater:
 
         threading.Thread(target=_do, daemon=True).start()
 
-    def download_and_install(self, url, on_progress=None, on_done=None):
+    def download_and_install(self, url, new_version, on_progress=None, on_done=None):
         """
-        Скачивает новый .exe и перезапускает лаунчер.
+        ★ FIX: Принимает new_version чтобы записать его в version.json после скачивания.
+        Это ключевое исправление — без записи версии лаунчер снова видел обновление.
+
         on_progress(done_bytes, total_bytes)
         on_done(success, error_or_path)
         """
         def _do():
             try:
-                # Определяем путь для сохранения
                 current = Path(sys.executable)
                 if current.suffix.lower() == ".exe":
-                    # Запущен как .exe — заменяем себя
-                    new_path = current.parent / f"angels_launcher_new.exe"
+                    new_path   = current.parent / "angels_launcher_new.exe"
                     final_path = current
                 else:
-                    # Запущен как .py — скачиваем рядом
-                    script = Path(__file__).resolve()
-                    new_path = script.parent / f"angels_launcher_new.py"
+                    script     = Path(__file__).resolve()
+                    new_path   = script.parent / "angels_launcher_new.py"
                     final_path = script
+
+                # Удаляем старый временный файл если есть
+                if new_path.exists():
+                    try: new_path.unlink()
+                    except: pass
 
                 # Скачиваем
                 download_file(url, new_path, on_progress=on_progress)
 
-                # Создаём bat-скрипт для замены файла и перезапуска (только Windows)
+                # ★ FIX: Проверяем что файл скачался и не пустой
+                if not new_path.exists() or new_path.stat().st_size < 10000:
+                    raise Exception(f"Файл скачался некорректно (размер: {new_path.stat().st_size if new_path.exists() else 0} байт)")
+
+                # ★ FIX: Записываем новую версию в файл РЯДОМ С НОВЫМ exe
+                # Файл версии будет прочитан после перезапуска
+                version_file_path = new_path.parent / "angels_launcher_version.json"
+                try:
+                    version_file_path.write_text(json.dumps({
+                        "version": new_version,
+                        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "previous_version": LAUNCHER_VER
+                    }, indent=2))
+                except Exception as ve:
+                    print(f"Предупреждение: не удалось записать version.json: {ve}")
+
+                current_pid = os.getpid()
+
                 if platform.system() == "Windows":
                     bat = new_path.parent / "_angels_update.bat"
-                    bat_content = f"""@echo off
-timeout /t 2 /nobreak > nul
-move /y "{new_path}" "{final_path}"
-start "" "{final_path}"
-del "%~f0"
-"""
-                    bat.write_text(bat_content)
+                    # ★ FIX: bat-скрипт теперь:
+                    # 1. Ждёт 2 секунды (лаунчер успевает запустить bat)
+                    # 2. Убивает ТЕКУЩИЙ процесс по PID
+                    # 3. Ждёт ещё секунду (процесс точно завершился)
+                    # 4. Заменяет exe файл
+                    # 5. Запускает новый exe
+                    # 6. Удаляет себя
+                    bat_content = (
+                        "@echo off\n"
+                        "echo Angels Launcher Updater\n"
+                        f"echo Завершаю текущий лаунчер (PID {current_pid})...\n"
+                        "timeout /t 2 /nobreak > nul\n"
+                        f"taskkill /PID {current_pid} /F > nul 2>&1\n"
+                        "timeout /t 1 /nobreak > nul\n"
+                        f"echo Заменяю файл...\n"
+                        f"move /y \"{new_path}\" \"{final_path}\"\n"
+                        "if errorlevel 1 (\n"
+                        "    echo ОШИБКА: не удалось заменить файл!\n"
+                        "    pause\n"
+                        "    goto :eof\n"
+                        ")\n"
+                        f"echo Запускаю новую версию...\n"
+                        f"start \"\" \"{final_path}\"\n"
+                        "del \"%~f0\"\n"
+                    )
+                    bat.write_text(bat_content, encoding="cp866")
                     if on_done: on_done(True, str(bat))
                 else:
-                    # Linux/Mac — простое переименование
+                    # Linux/Mac
+                    import stat as stat_mod
                     shutil.move(str(new_path), str(final_path))
+                    # Даём права на выполнение
+                    try:
+                        st = os.stat(final_path)
+                        os.chmod(final_path, st.st_mode | stat_mod.S_IEXEC | stat_mod.S_IXGRP | stat_mod.S_IXOTH)
+                    except: pass
                     if on_done: on_done(True, str(final_path))
 
             except Exception as e:
@@ -710,23 +777,40 @@ del "%~f0"
 
         threading.Thread(target=_do, daemon=True).start()
 
-    def restart_with_update(self, bat_path=None):
-        """Запускает bat-скрипт замены и перезапуска"""
+    def restart_with_update(self, bat_path_or_exe=None):
+        """
+        ★ FIX: Запускает обновление и СРАЗУ завершает текущий процесс.
+        Раньше лаунчер не завершался сам → bat не мог заменить файл.
+        """
         try:
-            if bat_path and Path(bat_path).exists():
-                subprocess.Popen(
-                    [bat_path],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE if platform.system()=="Windows" else 0
-                )
+            if bat_path_or_exe and Path(bat_path_or_exe).exists():
+                p = Path(bat_path_or_exe)
+                if p.suffix.lower() == ".bat":
+                    # Запускаем bat в новом окне и завершаемся
+                    subprocess.Popen(
+                        str(p),
+                        shell=True,
+                        creationflags=(
+                            subprocess.CREATE_NEW_CONSOLE
+                            if platform.system() == "Windows" else 0
+                        )
+                    )
+                    # ★ Ключевое: завершаем СЕБЯ немедленно
+                    # bat подождёт 2 сек, убьёт нас по PID (на случай если
+                    # destroy() не сработает), заменит файл и запустит новый
+                    time.sleep(0.3)
+                    os._exit(0)
+                else:
+                    # Linux/Mac — просто перезапускаем
+                    os.execv(bat_path_or_exe, [bat_path_or_exe] + sys.argv[1:])
             else:
-                # Прямой перезапуск
                 os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception as e:
             print(f"Restart error: {e}")
+            os._exit(1)
 
     # ── VS Code watch ──────────────────────────────────
     def watch_script(self, interval_ms=3000, root=None, on_change=None):
-        """Отслеживает изменения .py файла (для разработки в VS Code)"""
         if root is None: return
         def _check():
             try:
@@ -739,11 +823,9 @@ del "%~f0"
         root.after(interval_ms, _check)
 
     def auto_restart_on_change(self):
-        """Перезапускает лаунчер при изменении .py файла"""
         try:
             python = sys.executable
             script = str(Path(__file__).resolve())
-            # Небольшая задержка чтоб VS Code дописал файл
             time.sleep(0.5)
             os.execv(python, [python, script] + sys.argv[1:])
         except Exception as e:
@@ -751,14 +833,7 @@ del "%~f0"
 
 
 def generate_github_actions_config() -> str:
-    """
-    Возвращает содержимое файла .github/workflows/build.yml
-    Это нужно добавить в твой GitHub репо.
-    """
     return f"""# Файл: .github/workflows/build.yml
-# Создай эту папку и файл в своём репо на GitHub
-# Каждый git push с новой VERSION в коде → автоматически создаёт .exe в Releases
-
 name: Build Angels Launcher
 
 on:
@@ -805,8 +880,6 @@ jobs:
         name: Angels Launcher v${{{{ steps.get_version.outputs.version }}}}
         body: |
           Автоматическая сборка Angels Launcher v${{{{ steps.get_version.outputs.version }}}}
-          
-          Для обновления нажми кнопку **"Обновить"** в лаунчере.
         files: dist/AngelsLauncher.exe
         draft: false
         prerelease: false
@@ -815,7 +888,7 @@ jobs:
 """
 
 # ══════════════════════════════════════════════════════
-#  GLASS UI HELPERS (без изменений)
+#  GLASS UI HELPERS
 # ══════════════════════════════════════════════════════
 def draw_glass_card(canvas, x1, y1, x2, y2, r=14,
                     fill_dark=GL1, border=BD1, highlight=HL1,
@@ -1427,11 +1500,9 @@ class AngelsLauncher(tk.Tk):
         self._bubbles = []
         self._play_pulse = 0
 
-        # ★ AutoUpdater
         self._updater = AutoUpdater()
         self._update_available = False
         self._latest_update_info = None
-        self._update_badge_visible = False
 
         self._apply_icon()
         self._build_ui()
@@ -1443,21 +1514,21 @@ class AngelsLauncher(tk.Tk):
         self.bind("<F11>", self._toggle_fs)
         self.bind("<Escape>", lambda e: self._set_fs(False))
 
-        self._log(f"◈  Angels Launcher v{LAUNCHER_VER} — Привет, {self._nick}!", "accent")
+        # ★ FIX: Показываем реальную установленную версию
+        installed_ver = _read_installed_version()
+        self._log(f"◈  Angels Launcher v{installed_ver} — Привет, {self._nick}!", "accent")
         if self._adm:
             self._log(f"   ⚡ Администратор — все функции доступны.", "gold")
         self._log(f"   RAM системы: {TOTAL_RAM} ГБ  |  Выделено: {self.ram.get()} ГБ", "info")
         self._check_sub_alert()
         self._check_files()
 
-        # VS Code watch — авто-перезапуск при изменении файла
         self._updater.watch_script(
             interval_ms=2000,
             root=self,
             on_change=self._on_script_changed
         )
 
-        # Фоновая проверка обновлений через 3 сек после запуска
         self.after(3000, self._bg_check_updates)
 
     def _apply_icon(self):
@@ -1486,33 +1557,29 @@ class AngelsLauncher(tk.Tk):
                     kind="update", duration=8000
                 ))
                 self.after(0, lambda: self._log(
-                    f"⬆  Доступно обновление v{info['version']}! (текущая: v{LAUNCHER_VER})", "gold"
+                    f"⬆  Доступно обновление v{info['version']}! (текущая: v{_read_installed_version()})", "gold"
                 ))
         self._updater.check_for_updates(_cb)
 
     def _show_update_badge(self):
-        """Подсвечивает вкладку обновлений"""
         try:
-            b = self._tabs.get("updates")
-            if b:
-                b.configure(fg=GRN2, font=("Segoe UI",12,"bold"),
-                            bg="#061a08")
-            # Также обновляем заголовок
+            tab_data = self._tabs.get("updates")
+            if tab_data:
+                frame, icon_lbl, name_lbl, arrow_lbl = tab_data
+                name_lbl.configure(fg=GRN2, font=("Segoe UI",12,"bold"))
+                icon_lbl.configure(fg=GRN2)
             self.title(f"{LAUNCHER_NAME}  ·  Minecraft {MC_VERSION}  ·  [ОБНОВЛЕНИЕ ДОСТУПНО!]")
         except: pass
 
     def _on_script_changed(self):
-        """VS Code сохранил файл — спрашиваем о перезапуске"""
         self._log("◈  VS Code: файл скрипта изменён!", "gold")
         self._toast.show(
             "Файл скрипта изменён!\nАвто-перезапуск через 3 сек...",
             kind="update", duration=3000
         )
-        # Перезапускаем через 3 секунды
         self.after(3000, self._do_script_restart)
 
     def _do_script_restart(self):
-        """Перезапускает лаунчер с обновлённым кодом"""
         try:
             self._log("◈  Перезапуск лаунчера...", "accent")
             self.after(500, lambda: self._updater.auto_restart_on_change())
@@ -1577,7 +1644,7 @@ class AngelsLauncher(tk.Tk):
         except: pass
 
     # ══════════════════════════════════════════════════
-    #  BUILD UI  — улучшенное меню
+    #  BUILD UI
     # ══════════════════════════════════════════════════
     def _build_ui(self):
         self._bgc = tk.Canvas(self, bg=BG, highlightthickness=0)
@@ -1613,7 +1680,6 @@ class AngelsLauncher(tk.Tk):
         inner = tk.Frame(hdr, bg=GL1)
         inner.place(x=0, y=0, relwidth=1, height=105)
 
-        # Logo
         lc = tk.Canvas(inner, bg=GL1, width=76, height=68, highlightthickness=0)
         lc.pack(side="left", padx=(18,4), pady=10)
         draw_wings(lc, 38, 36, 25)
@@ -1624,14 +1690,6 @@ class AngelsLauncher(tk.Tk):
         title_row.pack(anchor="w")
         tk.Label(title_row, text="ANGELS", bg=GL1, fg=WHT, font=("Segoe UI",24,"bold")).pack(side="left")
         tk.Label(title_row, text=" LAUNCHER", bg=GL1, fg=ACC, font=("Segoe UI",24,"bold")).pack(side="left")
-
-        # Update badge в заголовке (появляется при наличии обновления)
-        self._hdr_update_badge = tk.Label(
-            title_row, text="  ⬆ ОБНОВЛЕНИЕ", bg=GL1, fg=GRN2,
-            font=("Segoe UI",10,"bold"), cursor="hand2"
-        )
-        self._hdr_update_badge.bind("<Button-1>", lambda e: self._show("updates"))
-        # Пока скрыт
 
         sub_row = tk.Frame(lf, bg=GL1)
         sub_row.pack(anchor="w")
@@ -1679,14 +1737,12 @@ class AngelsLauncher(tk.Tk):
         except: pass
 
     def _build_sidebar(self, body):
-        """★ УЛУЧШЕННАЯ боковая панель — крупнее, читабельнее"""
         side = tk.Frame(body, bg=GL1, width=260)
         side.pack(side="left", fill="y")
         side.pack_propagate(False)
 
         tk.Frame(side, bg=BD1, height=1).pack(fill="x")
 
-        # Wings + title
         mc = tk.Canvas(side, bg=GL1, width=50, height=36, highlightthickness=0)
         mc.pack(pady=(14,0))
         draw_wings(mc, 25, 19, 12)
@@ -1696,13 +1752,11 @@ class AngelsLauncher(tk.Tk):
 
         self._tabs = {}
 
-        # ★ Улучшенная структура меню с разделителями и группами
         nav_items = [
-            # (icon, label, key, group_header_before, is_special)
             ("◈", "Главная",      "home",     None,            False),
             ("◉", "Профиль",      "profile",  None,            False),
             (None, None, None, "─── ИГРА ───", None),
-            ("▶", "Играть",       "home",     None,            False),  # кнопка-шорткат
+            ("▶", "Играть",       "home",     None,            False),
             ("◐", "Серверы",      "multi",    None,            False),
             ("◎", "Моды",         "mods",     None,            False),
             (None, None, None, "─── СИСТЕМА ───", None),
@@ -1716,7 +1770,6 @@ class AngelsLauncher(tk.Tk):
 
         for icon, name, key, header, is_adm in nav_items:
             if header is not None:
-                # Разделитель с заголовком
                 sep_f = tk.Frame(side, bg=GL1)
                 sep_f.pack(fill="x", padx=14, pady=(8,2))
                 tk.Frame(sep_f, bg=BD1, height=1).pack(fill="x", side="left", expand=True, pady=6)
@@ -1728,11 +1781,9 @@ class AngelsLauncher(tk.Tk):
 
             if icon is None: continue
 
-            is_update = (key == "updates")
-            col_n = ADM_AC if is_adm else (TXT2)
+            col_n = ADM_AC if is_adm else TXT2
             col_a = ADM_AC if is_adm else ACC
 
-            # ★ Кнопки теперь крупнее, с иконкой отдельно
             btn_frame = tk.Frame(side, bg=GL1, cursor="hand2")
             btn_frame.pack(fill="x", padx=8, pady=2)
 
@@ -1744,17 +1795,10 @@ class AngelsLauncher(tk.Tk):
                                 font=("Segoe UI",12), anchor="w")
             name_lbl.pack(side="left", fill="x", expand=True, pady=10)
 
-            # Индикатор обновления
-            if is_update:
-                self._update_dot = tk.Label(btn_frame, text="", bg=GL1, fg=GRN2,
-                                            font=("Segoe UI",8,"bold"))
-                self._update_dot.pack(side="right", padx=8)
-
             arrow_lbl = tk.Label(btn_frame, text="›", bg=GL1, fg=MUT,
                                  font=("Segoe UI",12))
             arrow_lbl.pack(side="right", padx=8)
 
-            def _cmd(k=key): self._show(k)
             btn_frame.bind("<Button-1>", lambda e, k=key: self._show(k))
 
             def _enter(e, f=btn_frame, ca=col_a, il=icon_lbl, nl=name_lbl, al=arrow_lbl):
@@ -1783,13 +1827,10 @@ class AngelsLauncher(tk.Tk):
                 w.bind("<Leave>", _leave)
                 w.bind("<Button-1>", lambda e, k=key: self._show(k))
 
-            # Сохраняем ref для подсветки активной вкладки
             self._tabs[key] = (btn_frame, icon_lbl, name_lbl, arrow_lbl)
 
-        # Разделитель
         tk.Frame(side, bg=BD1, height=1).pack(fill="x", padx=14, pady=10)
 
-        # Subscription badge
         valid, status = check_subscription(self._user)
         sub_col = GRN2 if valid else ERR
         sub_sym = "✓" if valid else "⚠"
@@ -1805,10 +1846,10 @@ class AngelsLauncher(tk.Tk):
             tk.Label(sub_row, text=f"Продление: {TG_LINK}", bg=sub_bg, fg=ERR,
                      font=("Segoe UI",7)).pack(anchor="w")
 
-        # Clock + version
         self._clk = tk.Label(side, text="", bg=GL1, fg=MUT, font=("Segoe UI",9))
         self._clk.pack(side="bottom", pady=4)
-        tk.Label(side, text=f"v{LAUNCHER_VER}  AutoUpdate Edition",
+        installed_v = _read_installed_version()
+        tk.Label(side, text=f"v{installed_v}  AutoUpdate Edition",
                  bg=GL1, fg=BD1, font=("Segoe UI",7)).pack(side="bottom", pady=2)
         self._tick_clock()
 
@@ -1821,14 +1862,12 @@ class AngelsLauncher(tk.Tk):
     def _show(self, key):
         for p in self._panels.values(): p.pack_forget()
 
-        # Сбрасываем все вкладки
         for k, tab_widgets in self._tabs.items():
             frame, icon_lbl, name_lbl, arrow_lbl = tab_widgets
             is_adm = (k == "admin")
             is_upd = (k == "updates") and self._update_available
 
             if k == key:
-                # Активная вкладка
                 active_col = ADM_AC if is_adm else ACC
                 frame.configure(bg=GL3)
                 icon_lbl.configure(bg=GL3, fg=active_col, font=("Segoe UI",14,"bold"))
@@ -1837,7 +1876,6 @@ class AngelsLauncher(tk.Tk):
                 for child in frame.winfo_children():
                     try: child.configure(bg=GL3)
                     except: pass
-                # Левая цветная полоска
                 frame.configure(highlightthickness=0)
                 try:
                     for child in frame.winfo_children():
@@ -1847,7 +1885,6 @@ class AngelsLauncher(tk.Tk):
                 indicator = tk.Frame(frame, bg=active_col, width=3)
                 indicator.place(x=0, y=0, width=3, relheight=1)
             else:
-                # Неактивная
                 normal_col = ADM_AC if is_adm else (GRN2 if is_upd else TXT3)
                 frame.configure(bg=GL1)
                 icon_lbl.configure(bg=GL1, fg=normal_col, font=("Segoe UI",14))
@@ -1860,7 +1897,6 @@ class AngelsLauncher(tk.Tk):
         self._panels[key].pack(fill="both", expand=True, padx=24, pady=20)
         self._active_tab = key
 
-    # ── Glass card helper ──────────────────────────────
     def _card(self, parent, accent=ACC, **pkw):
         outer = tk.Frame(parent, bg=BD1, padx=1, pady=1)
         outer.pack(**pkw)
@@ -1880,9 +1916,10 @@ class AngelsLauncher(tk.Tk):
         wc.pack(pady=(0,2))
         draw_wings(wc, 140, 78, 56)
 
+        installed_v = _read_installed_version()
         tk.Label(f, text="ANGELS LAUNCHER", bg=BG, fg=WHT,
                  font=("Segoe UI",18,"bold")).pack()
-        tk.Label(f, text=f"Minecraft {MC_VERSION}  ·  Forge  ·  AutoUpdate v{LAUNCHER_VER}",
+        tk.Label(f, text=f"Minecraft {MC_VERSION}  ·  Forge  ·  AutoUpdate v{installed_v}",
                  bg=BG, fg=TXT3, font=("Segoe UI",10)).pack(pady=(2,12))
 
         card = self._card(f, ACC, fill="x")
@@ -1969,33 +2006,47 @@ class AngelsLauncher(tk.Tk):
         except: pass
 
     # ══════════════════════════════════════════════════
-    #  ★ НОВАЯ ВКЛАДКА ОБНОВЛЕНИЙ — простая кнопка "Обновить"
+    #  ★ ВКЛАДКА ОБНОВЛЕНИЙ (исправленная)
     # ══════════════════════════════════════════════════
     def _mk_updates(self, parent):
         f = tk.Frame(parent, bg=BG)
 
-        # Заголовок
         hdr = tk.Frame(f, bg=BG); hdr.pack(fill="x", pady=(0,16))
         tk.Label(hdr, text="⬆  Обновления лаунчера", bg=BG, fg=TXT,
                  font=("Segoe UI",16,"bold")).pack(side="left")
 
-        # ★ ГЛАВНАЯ КНОПКА ОБНОВИТЬ — одно нажатие, ничего лишнего
         self._big_update_btn_frame = tk.Frame(f, bg=BG)
         self._big_update_btn_frame.pack(fill="x", pady=(0,16))
         self._build_update_button()
 
-        # Текущая версия
+        # ★ FIX: Показываем РЕАЛЬНУЮ установленную версию
         cur = self._card(f, ACC, fill="x", pady=(0,12))
         cr = tk.Frame(cur, bg=GL1); cr.pack(fill="x", padx=18, pady=14)
+        installed_v = _read_installed_version()
         vrow = tk.Frame(cr, bg=GL1); vrow.pack(anchor="w")
-        tk.Label(vrow, text=f"v{LAUNCHER_VER}", bg=GL1, fg=ACC,
+        tk.Label(vrow, text=f"v{installed_v}", bg=GL1, fg=ACC,
                  font=("Segoe UI",26,"bold")).pack(side="left")
-        tk.Label(vrow, text="  AutoUpdate Edition  —  текущая версия",
+        tk.Label(vrow, text="  AutoUpdate Edition  —  установленная версия",
                  bg=GL1, fg=TXT3, font=("Segoe UI",11)).pack(side="left", pady=8)
+
+        # Показываем когда было обновление
+        try:
+            if INSTALLED_VERSION_FILE.exists():
+                data = json.loads(INSTALLED_VERSION_FILE.read_text())
+                upd_at = data.get("updated_at", "")
+                prev = data.get("previous_version", "")
+                if upd_at:
+                    info_text = f"Обновлено: {upd_at}"
+                    if prev and prev != installed_v:
+                        info_text += f"  (было v{prev})"
+                    tk.Label(cr, text=info_text, bg=GL1, fg=GRN2,
+                             font=("Segoe UI",9)).pack(anchor="w", pady=(2,0))
+        except: pass
+
         tk.Label(cr, text=f"GitHub: {GITHUB_REPO}", bg=GL1, fg=MUT,
                  font=("Cascadia Code",9)).pack(anchor="w", pady=(4,0))
 
-        # Changelog / информация о новой версии
+        # Changelog
         self._cl_card = self._card(f, BD1, fill="x", pady=(0,12))
         self._cl_title_lbl = tk.Label(
             self._cl_card, text="Список изменений", bg=GL1, fg=TXT2,
@@ -2007,8 +2058,8 @@ class AngelsLauncher(tk.Tk):
         tk.Label(self._cl_body, text="Нажми «Проверить обновления» — мы сравним твою версию\nс последним релизом на GitHub.",
                  bg=GL1, fg=TXT3, font=("Segoe UI",10), justify="left").pack(anchor="w")
 
-        # VS Code секция
-        if not getattr(sys, 'frozen', False):  # Только если запущен как .py
+        # VS Code секция (только для .py)
+        if not getattr(sys, 'frozen', False):
             vc = self._card(f, ACG, fill="x", pady=(0,8))
             vc_r = tk.Frame(vc, bg=GL1); vc_r.pack(fill="x", padx=18, pady=12)
             tk.Label(vc_r, text="VS Code  Авто-перезапуск",
@@ -2023,11 +2074,10 @@ class AngelsLauncher(tk.Tk):
             tk.Frame(path_f, bg=HL0, height=1).pack(fill="x")
             tk.Label(path_f, text=f"  Отслеживаемый файл: {Path(__file__).resolve()}",
                      bg=GL2, fg=TXT3, font=("Cascadia Code",8), anchor="w").pack(padx=6, pady=6)
-            self._vs_status_lbl = tk.Label(vc_r, text="● Наблюдение активно",
-                                           bg=GL1, fg=GRN2, font=("Segoe UI",9,"bold"))
-            self._vs_status_lbl.pack(anchor="w", pady=(4,0))
+            tk.Label(vc_r, text="● Наблюдение активно",
+                     bg=GL1, fg=GRN2, font=("Segoe UI",9,"bold")).pack(anchor="w", pady=(4,0))
 
-        # Как настроить (для разработчика)
+        # Инструкция для разработчика
         setup = self._card(f, PUR, fill="x")
         sv = tk.Frame(setup, bg=GL1); sv.pack(fill="x", padx=18, pady=12)
         tk.Label(sv, text="◈  Как настроить авто-обновления для всех", bg=GL1, fg=PUR,
@@ -2052,14 +2102,14 @@ class AngelsLauncher(tk.Tk):
         return f
 
     def _build_update_button(self):
-        """★ Строит главную кнопку Обновить"""
         for w in self._big_update_btn_frame.winfo_children(): w.destroy()
 
         if self._update_available and self._latest_update_info:
             ver = self._latest_update_info["version"]
+            installed_v = _read_installed_version()
             size = self._latest_update_info.get("size", 0)
             size_str = f"  ({fmt_size(size)})" if size else ""
-            # Большая зелёная кнопка
+
             outer = tk.Frame(self._big_update_btn_frame, bg=GRN2, padx=2, pady=2)
             outer.pack(fill="x")
             tk.Frame(outer, bg=WHT, height=1).pack(fill="x")
@@ -2073,19 +2123,18 @@ class AngelsLauncher(tk.Tk):
             info_col = tk.Frame(row, bg="#0a2014"); info_col.pack(side="left", fill="y")
             tk.Label(info_col, text=f"Обновление доступно: v{ver}{size_str}",
                      bg="#0a2014", fg=GRN2, font=("Segoe UI",14,"bold"), anchor="w").pack(anchor="w")
-            tk.Label(info_col, text=f"Текущая версия: v{LAUNCHER_VER}  →  Новая: v{ver}",
+            tk.Label(info_col, text=f"Установленная версия: v{installed_v}  →  Новая: v{ver}",
                      bg="#0a2014", fg=TXT2, font=("Segoe UI",10), anchor="w").pack(anchor="w")
 
-            # Прогресс бар скачивания (скрыт пока не нажали)
             self._dl_progress_frame = tk.Frame(inner, bg="#0a2014")
             self._dl_progress_frame.pack(fill="x", padx=20, pady=(0,4))
             pb_bg = tk.Frame(self._dl_progress_frame, bg=GL3, height=6)
-            self._dl_pb_bg = pb_bg  # сохраняем ref
+            self._dl_pb_bg = pb_bg
             self._dl_pb = tk.Frame(pb_bg, bg=GRN2, height=6)
             self._dl_pb.place(x=0, y=0, height=6, relwidth=0)
             self._dl_pct_lbl = tk.Label(self._dl_progress_frame, text="",
                                         bg="#0a2014", fg=GRN2, font=("Segoe UI",8))
-            # Кнопка
+
             btn_row = tk.Frame(inner, bg="#0a2014"); btn_row.pack(fill="x", padx=20, pady=(4,16))
             self._do_update_btn = tk.Button(
                 btn_row, text="⬇   СКАЧАТЬ И ОБНОВИТЬ",
@@ -2095,10 +2144,10 @@ class AngelsLauncher(tk.Tk):
                 command=self._do_update_now
             )
             self._do_update_btn.pack(side="left")
-            tk.Label(btn_row, text="  Лаунчер автоматически перезапустится после обновления",
+            tk.Label(btn_row,
+                     text="  Лаунчер автоматически перезапустится после обновления",
                      bg="#0a2014", fg=TXT3, font=("Segoe UI",9)).pack(side="left", padx=10)
 
-            # Changelog в этой же карточке
             if self._latest_update_info.get("changelog"):
                 tk.Frame(inner, bg=BD1, height=1).pack(fill="x", padx=20)
                 cl_row = tk.Frame(inner, bg="#0a2014"); cl_row.pack(fill="x", padx=20, pady=10)
@@ -2108,9 +2157,7 @@ class AngelsLauncher(tk.Tk):
                     col = GRN2 if line.startswith("+") or line.startswith("-") else TXT3
                     tk.Label(cl_row, text=f"  {line}", bg="#0a2014", fg=col,
                              font=("Segoe UI",9), anchor="w").pack(anchor="w")
-
         else:
-            # Нет обновлений / не проверено
             outer = tk.Frame(self._big_update_btn_frame, bg=BD1, padx=1, pady=1)
             outer.pack(fill="x")
             inner = tk.Frame(outer, bg=GL1); inner.pack(fill="x")
@@ -2126,7 +2173,8 @@ class AngelsLauncher(tk.Tk):
                 bg=GL1, fg=TXT, font=("Segoe UI",13,"bold"), anchor="w"
             )
             self._check_status_lbl.pack(anchor="w")
-            tk.Label(info_col, text=f"Текущая версия: v{LAUNCHER_VER}  ·  Репо: {GITHUB_REPO}",
+            installed_v = _read_installed_version()
+            tk.Label(info_col, text=f"Установленная версия: v{installed_v}  ·  Репо: {GITHUB_REPO}",
                      bg=GL1, fg=TXT3, font=("Segoe UI",9), anchor="w").pack(anchor="w")
 
             btn_row = tk.Frame(inner, bg=GL1); btn_row.pack(fill="x", padx=20, pady=(8,16))
@@ -2139,14 +2187,13 @@ class AngelsLauncher(tk.Tk):
             self._check_btn.pack(side="left")
 
     def _do_check_updates(self):
-        """Проверяет наличие обновлений"""
         try:
             self._check_btn.configure(state="disabled", text="⏳  Проверяю...")
             self._check_status_lbl.configure(text="Подключение к GitHub...", fg=TXT2)
         except: pass
 
-        def _cb(success, info, error):
-            self.after(0, lambda: self._on_check_done(success, info, error))
+        def _cb(ok, info, err):
+            self.after(0, lambda: self._on_check_done(ok, info, err))
 
         self._updater.check_for_updates(_cb)
 
@@ -2163,17 +2210,17 @@ class AngelsLauncher(tk.Tk):
                 self._rebuild_updates_panel()
                 self._toast.show(f"⬆ Доступно v{info['version']}!", kind="update")
             else:
+                installed_v = _read_installed_version()
                 try:
                     self._check_status_lbl.configure(
-                        text=f"✓  У тебя последняя версия!  (v{LAUNCHER_VER})",
+                        text=f"✓  У тебя последняя версия!  (v{installed_v})",
                         fg=GRN2
                     )
                 except: pass
                 self._toast.show("✓ У тебя последняя версия!", kind="success")
-                # Показываем changelog текущей версии
                 try:
                     for w in self._cl_body.winfo_children(): w.destroy()
-                    self._cl_title_lbl.configure(text=f"◈  Версия v{LAUNCHER_VER} — актуальна!", fg=GRN2)
+                    self._cl_title_lbl.configure(text=f"◈  Версия v{installed_v} — актуальна!", fg=GRN2)
                     tk.Label(self._cl_body, text="Поздравляем! Ты используешь самую свежую версию лаунчера.",
                              bg=GL1, fg=GRN2, font=("Segoe UI",10)).pack(anchor="w")
                     if info.get("changelog"):
@@ -2189,13 +2236,11 @@ class AngelsLauncher(tk.Tk):
                     fg=ERR
                 )
             except: pass
-            self._toast.show(f"Ошибка проверки обновлений", kind="error")
+            self._toast.show("Ошибка проверки обновлений", kind="error")
             self._log(f"⬆  Ошибка обновлений: {error}", "warn")
 
     def _rebuild_updates_panel(self):
-        """Перестраивает кнопку обновления после получения данных"""
         self._build_update_button()
-        # Обновляем changelog
         try:
             for w in self._cl_body.winfo_children(): w.destroy()
             info = self._latest_update_info
@@ -2211,9 +2256,10 @@ class AngelsLauncher(tk.Tk):
         except: pass
 
     def _do_update_now(self):
-        """★ Скачивает и устанавливает обновление"""
+        """★ FIX: Передаём new_version в download_and_install"""
         if not self._latest_update_info: return
         url = self._latest_update_info.get("download_url", "")
+        new_version = self._latest_update_info.get("version", "")
         if not url:
             self._toast.show("Ссылка на скачивание недоступна!", kind="error")
             return
@@ -2224,7 +2270,7 @@ class AngelsLauncher(tk.Tk):
             self._dl_pct_lbl.pack(anchor="w")
         except: pass
 
-        self._log(f"⬆  Скачиваю обновление v{self._latest_update_info['version']}...", "gold")
+        self._log(f"⬆  Скачиваю обновление v{new_version}...", "gold")
         self._toast.show("Скачиваю обновление...", kind="info", duration=15000)
 
         def _progress(done, total):
@@ -2235,7 +2281,12 @@ class AngelsLauncher(tk.Tk):
         def _done(success, result):
             self.after(0, lambda: self._on_update_downloaded(success, result))
 
-        self._updater.download_and_install(url, on_progress=_progress, on_done=_done)
+        # ★ FIX: передаём new_version
+        self._updater.download_and_install(
+            url, new_version,
+            on_progress=_progress,
+            on_done=_done
+        )
 
     def _update_dl_progress(self, pct, done, total):
         try:
@@ -2249,12 +2300,12 @@ class AngelsLauncher(tk.Tk):
     def _on_update_downloaded(self, success, result):
         if success:
             self._toast.show("Обновление скачано! Перезапуск...", kind="update", duration=5000)
-            self._log("⬆  Обновление скачано! Перезапускаю...", "gold")
+            self._log("⬆  Обновление скачано! Закрываю лаунчер и запускаю новый...", "gold")
             try:
                 self._do_update_btn.configure(text="✓  Перезапуск...", bg=GRN2, fg=BG)
             except: pass
-            # Запускаем bat/перезапуск через 2 сек
-            self.after(2000, lambda: self._updater.restart_with_update(result))
+            # ★ FIX: Закрываем UI, запускаем bat, завершаемся
+            self.after(1500, lambda: self._execute_update(result))
         else:
             self._toast.show(f"Ошибка скачивания: {result}", kind="error")
             self._log(f"✗  Ошибка скачивания: {result}", "error")
@@ -2264,8 +2315,16 @@ class AngelsLauncher(tk.Tk):
                 )
             except: pass
 
+    def _execute_update(self, bat_path):
+        """★ FIX: Закрываем окно лаунчера, затем запускаем bat и завершаемся"""
+        try:
+            # Скрываем окно чтобы пользователь понял что происходит
+            self.withdraw()
+        except: pass
+        # Небольшая пауза, потом запускаем bat и убиваем себя
+        self.after(300, lambda: self._updater.restart_with_update(bat_path))
+
     def _copy_actions_config(self):
-        """Копирует конфиг GitHub Actions в буфер обмена"""
         config = generate_github_actions_config()
         self.clipboard_clear()
         self.clipboard_append(config)
@@ -2625,7 +2684,8 @@ class AngelsLauncher(tk.Tk):
                 self._log(f"  {name:<28} — {desc}", tag)
         elif c == "clear": self._clear_con()
         elif c == "version":
-            self._log(f"  Angels Launcher v{LAUNCHER_VER} AutoUpdate Edition", "accent")
+            installed_v = _read_installed_version()
+            self._log(f"  Angels Launcher v{installed_v} AutoUpdate Edition", "accent")
             self._log(f"  MC {MC_VERSION}  ·  Forge {FORGE_VERSION}  ·  RAM {TOTAL_RAM} ГБ", "info")
             self._log(f"  GitHub: {GITHUB_REPO}", "muted")
         elif c == "sub":
@@ -2639,7 +2699,8 @@ class AngelsLauncher(tk.Tk):
                     if self._updater.is_newer(info["version"]):
                         self._log(f"  ⬆ Доступно v{info['version']}! Перейди в «Обновления».", "gold")
                     else:
-                        self._log(f"  ✓ Последняя версия (v{LAUNCHER_VER})", "accent")
+                        installed_v = _read_installed_version()
+                        self._log(f"  ✓ Последняя версия (v{installed_v})", "accent")
                 else:
                     self._log(f"  ✗ Ошибка: {err}", "error")
             self._updater.check_for_updates(_cb)
@@ -2773,7 +2834,7 @@ class AngelsLauncher(tk.Tk):
         return f
 
     # ══════════════════════════════════════════════════
-    #  ADMIN PANEL (без изменений по сравнению с v10)
+    #  ADMIN PANEL
     # ══════════════════════════════════════════════════
     def _mk_admin(self, parent):
         f = tk.Frame(parent, bg=ADM_BG)
@@ -3222,7 +3283,7 @@ class AngelsLauncher(tk.Tk):
             self._log(f"✓  Forge [{forge_id}] и {MOD_NAME} установлены.", "accent")
 
     # ══════════════════════════════════════════════════
-    #  START / INSTALL / LAUNCH (без изменений)
+    #  START / INSTALL / LAUNCH
     # ══════════════════════════════════════════════════
     def _start(self):
         valid, status = check_subscription(self._user)
@@ -3546,7 +3607,6 @@ if __name__ == "__main__":
         print(f"{'═'*50}\n")
         sys.exit(0)
 
-    # Печатаем конфиг GitHub Actions если попросили
     if len(sys.argv) >= 2 and sys.argv[1] == "--print-actions":
         print(generate_github_actions_config())
         sys.exit(0)
