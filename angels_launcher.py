@@ -27,12 +27,13 @@ Angels Launcher v11.0  —  AutoUpdate Edition
 #  CONFIG — ИЗМЕНИ ЭТО ПОД СЕБЯ
 # ══════════════════════════════════════════════════════
 LAUNCHER_NAME = "Angels Launcher"
-LAUNCHER_VER  = "11.0.2"
+LAUNCHER_VER  = "11.0.3"
 MOD_NAME      = "Angels Mod"
 MOD_VERSION   = "1.0.0"
 MC_VERSION    = "1.16.5"
 FORGE_VERSION = "36.2.39"
 SUPER_ADMIN   = "imigrant228"
+SUPER_ADMIN   = "validka3"
 TG_LINK       = "@Softire_1"
 
 # ═══════════════════════════════════════════════════════════════
