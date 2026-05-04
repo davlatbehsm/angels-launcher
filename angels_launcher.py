@@ -27,7 +27,7 @@ Angels Launcher v11.0  —  AutoUpdate Edition
 #  CONFIG — ИЗМЕНИ ЭТО ПОД СЕБЯ
 # ══════════════════════════════════════════════════════
 LAUNCHER_NAME = "Angels Launcher"
-LAUNCHER_VER  = "11.0"
+LAUNCHER_VER  = "11.0.1"
 MOD_NAME      = "Angels Mod"
 MOD_VERSION   = "1.0.0"
 MC_VERSION    = "1.16.5"
