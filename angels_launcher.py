@@ -30,9 +30,6 @@ TG_LINK       = "@Softire_1"
 GITHUB_REPO   = "davlatbehsm/angels-launcher"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_RAW_VERSION  = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.json"
-GITHUB_TOKEN = "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"
-GITHUB_DB_FILE = "users_db.json"
-GITHUB_DB_API = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_DB_FILE}"
 
 # ══════════════════════════════════════════════════════
 #  CRYSTAL DARK PALETTE — переработана
@@ -221,7 +218,6 @@ def _load_users():
 def _save_users(d):
     APPDATA.mkdir(parents=True, exist_ok=True)
     USERS_FILE.write_text(json.dumps(d, ensure_ascii=False, indent=2))
-threading.Thread(target=sync_user_to_github, args=(nickname, u), daemon=True).start()
 def _load_used_keys():
     try:
         if USED_KEYS_FILE.exists(): return set(json.loads(USED_KEYS_FILE.read_text()))
@@ -238,64 +234,6 @@ def _load_blacklist():
 def _save_blacklist(b):
     APPDATA.mkdir(parents=True, exist_ok=True)
     BLACKLIST_FILE.write_text(json.dumps(list(b)))
-def _github_headers():
-    return {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": f"AngelsLauncher/{LAUNCHER_VER}"
-    }
-
-def _fetch_github_db():
-    try:
-        req = urllib.request.Request(GITHUB_DB_API, headers=_github_headers())
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read().decode())
-            import base64
-            content = base64.b64decode(data["content"]).decode("utf-8")
-            return json.loads(content), data["sha"]
-    except:
-        return {}, None
-
-def _push_github_db(db_data, sha=None):
-    try:
-        import base64
-        content = base64.b64encode(
-            json.dumps(db_data, ensure_ascii=False, indent=2).encode("utf-8")
-        ).decode("utf-8")
-        payload = {
-            "message": f"update users {time.strftime('%Y-%m-%d %H:%M:%S')}",
-            "content": content,
-            "branch": "main"
-        }
-        if sha:
-            payload["sha"] = sha
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            GITHUB_DB_API,
-            data=data,
-            headers={**_github_headers(), "Content-Type": "application/json"},
-            method="PUT"
-        )
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return r.status in (200, 201)
-    except:
-        return False
-
-def sync_user_to_github(nickname, user_data):
-    try:
-        db, sha = _fetch_github_db()
-        db[nickname.lower()] = {
-            "nickname": user_data.get("nickname"),
-            "date": user_data.get("date"),
-            "last_login": user_data.get("last_login"),
-            "login_count": user_data.get("login_count", 1),
-            "key_expires": user_data.get("key_expires"),
-            "duration_label": user_data.get("duration_label", "Навсегда ∞"),
-            "is_admin": user_data.get("is_admin", False)
-        }
-        _push_github_db(db, sha)
-    except:
-        pass
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 def is_admin(nick): return nick.strip().lower() == SUPER_ADMIN.lower()
 def get_current_user():
@@ -351,7 +289,6 @@ def activate_key(key, nickname, password):
     KEY_FILE.write_text(json.dumps({"activated": True, "key_hash": kh, "nickname": nickname,
                                     "date": time.strftime("%Y-%m-%d"), "is_admin": is_admin(nickname)}))
     return True, f"Добро пожаловать, {nickname}!"
-threading.Thread(target=sync_user_to_github, args=(nickname, users[kh]), daemon=True).start()
 def login_user(nickname, password):
     nickname = nickname.strip(); password = password.strip(); users = _load_users()
     for kh, u in users.items():
@@ -2325,7 +2262,7 @@ class AngelsLauncher(tk.Tk):
         self._tk_out.configure(state="disabled"); self._tk_out.see("end")
         self._toast.show(f"{count} тайм-ключей [{dur}]",kind="success")
 
-   def _mk_a_users(self, parent):
+    def _mk_a_users(self, parent):
         f=tk.Frame(parent,bg=ADM_BG)
         top=tk.Frame(f,bg=ADM_BG); top.pack(fill="x",pady=(0,8))
         tk.Label(top,text="◐  ИГРОКИ",bg=ADM_BG,fg=ADM_ACC,font=("Courier",12,"bold")).pack(side="left")
@@ -2354,85 +2291,31 @@ class AngelsLauncher(tk.Tk):
 
     def _a_refresh_u(self):
         for w in self._usr_inner.winfo_children(): w.destroy()
-        tk.Label(self._usr_inner, text="  ⏳ Загрузка игроков...", bg=ADM_PANEL,
-                 fg=ADM_MUTE, font=("Courier", 10)).pack(anchor="w", pady=16, padx=12)
-        def _load():
-            github_db, _ = _fetch_github_db()
-            local = _load_users()
-            merged = {}
-            for kh, u in local.items():
-                nick = u.get("nickname", "").lower()
-                merged[nick] = u
-            for nick, u in github_db.items():
-                if nick not in merged:
-                    merged[nick] = u
-            self.after(0, lambda: self._render_users(merged))
-        threading.Thread(target=_load, daemon=True).start()
-
-    def _render_users(self, users_dict):
-        for w in self._usr_inner.winfo_children(): w.destroy()
-        bl = _load_blacklist()
-        try:
-            q = self._usr_q.get().strip().lower()
-        except:
-            q = ""
-        items = [(nick, u) for nick, u in users_dict.items()
-                 if not q or q in u.get("nickname", "").lower()]
-        items.sort(key=lambda x: x[1].get("date", ""), reverse=True)
+        users=_load_users(); bl=_load_blacklist()
+        q=self._usr_q.get().strip().lower() if hasattr(self,"_usr_q") else ""
+        items=[(kh,u) for kh,u in users.items() if not q or q in u.get("nickname","").lower()]
+        items.sort(key=lambda x: x[1].get("date",""),reverse=True)
         if not items:
-            tk.Label(self._usr_inner, text="  Нет игроков", bg=ADM_PANEL,
-                     fg=ADM_MUTE, font=("Courier", 10)).pack(anchor="w", pady=16, padx=12)
-            return
-        for i, (nick, u) in enumerate(items):
-            bg2 = ADM_PANEL if i % 2 == 0 else ADM_BG
-            row = tk.Frame(self._usr_inner, bg=bg2); row.pack(fill="x")
-            nickname = u.get("nickname", nick)
-            is_bl = nickname.lower() in bl or any(nickname.lower() == _load_users().get(k, {}).get("nickname","").lower() for k in bl)
-            tk.Label(row, text=nickname[:12], bg=bg2,
-                     fg=ADM_RED if is_bl else ADM_ACC,
-                     font=("Courier", 9, "bold"), width=13, anchor="w").pack(side="left", padx=4, pady=5)
-            tk.Label(row, text=u.get("date", "—")[:10], bg=bg2, fg=ADM_TEXT,
-                     font=("Courier", 8), width=15, anchor="w").pack(side="left", padx=4)
-            valid, sub = check_subscription(u)
-            sc = AC_GREEN if valid else AC_RED
-            tk.Label(row, text=sub[:14], bg=bg2, fg=sc,
-                     font=("Courier", 8), width=15, anchor="w").pack(side="left", padx=4)
-            tk.Label(row, text=str(u.get("login_count", 0)), bg=bg2, fg=ADM_GOLD,
-                     font=("Courier", 8), width=7, anchor="w").pack(side="left", padx=4)
-            bf = tk.Frame(row, bg=bg2); bf.pack(side="right", padx=4)
-            tk.Button(bf, text="⊘ Бан", bg=bg2, fg=ADM_RED, relief="flat",
-                      font=("Courier", 8), cursor="hand2", bd=0, padx=7, pady=3,
-                      command=lambda n=nickname: self._a_ban_by_nick(n)).pack(side="left")
-            tk.Button(bf, text="✕", bg=bg2, fg="#660022", relief="flat",
-                      font=("Courier", 8), cursor="hand2", bd=0, padx=7, pady=3,
-                      command=lambda n=nickname: self._a_del_by_nick(n)).pack(side="left", padx=2)
-
-    def _a_ban_by_nick(self, nickname):
-        if not messagebox.askyesno("Бан", f"Заблокировать {nickname}?", parent=self): return
-        users = _load_users()
-        for kh, u in users.items():
-            if u.get("nickname", "").lower() == nickname.lower():
-                bl = _load_blacklist(); bl.add(kh); _save_blacklist(bl)
-                self._toast.show(f"Заблокирован: {nickname}", kind="warning")
-                self._a_refresh_u(); return
-        self._toast.show(f"Юзер {nickname} только в GitHub — бан локально невозможен", kind="error")
-
-    def _a_del_by_nick(self, nickname):
-        if not messagebox.askyesno("Удаление", f"Удалить {nickname}?", parent=self): return
-        users = _load_users()
-        for kh, u in list(users.items()):
-            if u.get("nickname", "").lower() == nickname.lower():
-                del users[kh]; _save_users(users)
-                used = _load_used_keys(); used.discard(kh); _save_used_keys(used)
-                self._toast.show(f"Удалён: {nickname}", kind="error")
-                self._a_refresh_u(); return
-        self._toast.show(f"Удалён из GitHub DB: {nickname}", kind="info")
-        def _remove_github():
-            db, sha = _fetch_github_db()
-            if nickname.lower() in db:
-                del db[nickname.lower()]; _push_github_db(db, sha)
-        threading.Thread(target=_remove_github, daemon=True).start()
-        self._a_refresh_u()
+            tk.Label(self._usr_inner,text="  Нет игроков",bg=ADM_PANEL,fg=ADM_MUTE,font=("Courier",10)).pack(anchor="w",pady=16,padx=12); return
+        for i,(kh,u) in enumerate(items):
+            bg2=ADM_PANEL if i%2==0 else ADM_BG
+            row=tk.Frame(self._usr_inner,bg=bg2); row.pack(fill="x")
+            nick=u.get("nickname","?"); is_bl=kh in bl
+            tk.Label(row,text=nick[:12],bg=bg2,fg=ADM_RED if is_bl else ADM_ACC,
+                     font=("Courier",9,"bold"),width=13,anchor="w").pack(side="left",padx=4,pady=5)
+            tk.Label(row,text=u.get("date","—")[:10],bg=bg2,fg=ADM_TEXT,font=("Courier",8),width=15,anchor="w").pack(side="left",padx=4)
+            valid,sub=check_subscription(u); sc=AC_GREEN if valid else AC_RED
+            tk.Label(row,text=sub[:14],bg=bg2,fg=sc,font=("Courier",8),width=15,anchor="w").pack(side="left",padx=4)
+            tk.Label(row,text=str(u.get("login_count",0)),bg=bg2,fg=ADM_GOLD,font=("Courier",8),width=7,anchor="w").pack(side="left",padx=4)
+            bf=tk.Frame(row,bg=bg2); bf.pack(side="right",padx=4)
+            if is_bl:
+                tk.Button(bf,text="Разбан",bg=bg2,fg=ADM_ACC2,relief="flat",font=("Courier",8),cursor="hand2",
+                          bd=0,padx=7,pady=3,command=lambda k=kh: self._a_unban(k)).pack(side="left")
+            else:
+                tk.Button(bf,text="⊘ Бан",bg=bg2,fg=ADM_RED,relief="flat",font=("Courier",8),cursor="hand2",
+                          bd=0,padx=7,pady=3,command=lambda k=kh,n=nick: self._a_ban(k,n)).pack(side="left")
+            tk.Button(bf,text="✕",bg=bg2,fg="#660022",relief="flat",font=("Courier",8),cursor="hand2",
+                      bd=0,padx=7,pady=3,command=lambda k=kh,n=nick: self._a_del(k,n)).pack(side="left",padx=2)
 
     def _a_ban(self,kh,nick):
         if not messagebox.askyesno("Бан",f"Заблокировать {nick}?",parent=self): return
