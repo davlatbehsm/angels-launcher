@@ -1,5 +1,4 @@
 name: Build Angels Launcher
-
 on:
   push:
     branches: [ main ]
@@ -8,19 +7,19 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
-        pip install pyinstaller
-    
+        pip install pyinstaller pillow requests
+
     - name: Get version from script
       id: get_version
       shell: python
@@ -32,22 +31,55 @@ jobs:
         version = match.group(1) if match else "0.0"
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"version={version}\n")
-    
+        print(f"Detected version: {version}")
+
     - name: Build EXE
+      shell: pwsh
       run: |
-        pyinstaller --onefile --noconsole --name "AngelsLauncher" angels_launcher.py
-    
+        pyinstaller `
+          --onefile `
+          --noconsole `
+          --name "AngelsLauncher" `
+          --hidden-import tkinter `
+          --hidden-import tkinter.ttk `
+          --hidden-import tkinter.messagebox `
+          --hidden-import tkinter.filedialog `
+          --hidden-import tkinter.font `
+          --hidden-import tkinter.colorchooser `
+          --collect-all tkinter `
+          angels_launcher.py
+
+    - name: Verify EXE exists
+      shell: pwsh
+      run: |
+        if (!(Test-Path "dist/AngelsLauncher.exe")) {
+          Write-Error "EXE not found! Build failed."
+          exit 1
+        }
+        $size = (Get-Item "dist/AngelsLauncher.exe").Length
+        Write-Host "EXE built successfully: $([math]::Round($size/1MB, 2)) MB"
+
+    - name: Delete existing release and tag
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release delete v${{ steps.get_version.outputs.version }} --yes 2>/dev/null || true
+        git push --delete origin v${{ steps.get_version.outputs.version }} 2>/dev/null || true
+
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.get_version.outputs.version }}
         name: Angels Launcher v${{ steps.get_version.outputs.version }}
         body: |
           Автоматическая сборка Angels Launcher v${{ steps.get_version.outputs.version }}
-          
+
           Для обновления нажми кнопку **"Обновить"** в лаунчере.
         files: dist/AngelsLauncher.exe
         draft: false
         prerelease: false
+        make_latest: true
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
