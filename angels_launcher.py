@@ -21,9 +21,9 @@ Angels Launcher v13.0  —  Neon Edition
 #  CONFIG
 # ══════════════════════════════════════════════════════
 LAUNCHER_NAME = "Angels Launcher"
-LAUNCHER_VER  = "13.0.0"
+LAUNCHER_VER  = "13.0.1"
 MOD_NAME      = "Angels Mod"
-MOD_VERSION   = "1.0.0"
+MOD_VERSION   = "1.1.0"
 MC_VERSION    = "1.16.5"
 FORGE_VERSION = "36.2.39"
 SUPER_ADMIN   = "validka3"
@@ -356,8 +356,8 @@ def _get_mod_url():
           b'\x64\x72\x69\x76\x65\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d',
           b'\x2f\x75\x63\x3f\x65\x78\x70\x6f\x72\x74\x3d\x64\x6f\x77\x6e\x6c\x6f\x61\x64',
           b'\x26\x69\x64\x3d',
-          bytes([49,116,103,87,119,113,109,116,100,104,121,57,101,116,79,116,79,
-                 84,113,72,75,82,89,52,113,109,122,80,118,99,86,67,112])]
+          bytes([49, 108, 80, 115, 78, 120, 81, 100, 95, 122, 83, 103, 53, 114, 65, 53, 74, 
+                 87, 76, 53, 101, 81, 121, 90, 56, 57, 119, 49, 90, 113, 118, 49, 51])]
     return b''.join(_s).decode()
 
 MOD_URL = _get_mod_url()
