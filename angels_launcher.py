@@ -10,6 +10,7 @@ Angels Launcher v13.0  —  Neon Edition
   ◈ Статусные бейджи с цветным фоном
   ◈ Улучшенный сайдбар — активный пункт с glow
   ◈ Импорт/экспорт базы пользователей в админке
+  ◈ ИСПРАВЛЕНО: 'Frame' object has no attribute '_inner'
 
   Admin-панель: python angels_launcher_v13.py --angelsvistop121
   Keygen CLI  : python angels_launcher_v13.py --keygen [n]
@@ -205,7 +206,6 @@ def _save_keys_meta(d):
 #  USER DATABASE
 # ══════════════════════════════════════════════════════
 def _load_users():
-    """Загружает всех пользователей из файла users.json"""
     try:
         if USERS_FILE.exists():
             data = json.loads(USERS_FILE.read_text(encoding='utf-8'))
@@ -303,7 +303,6 @@ def activate_key(key, nickname, password):
     return True, f"Добро пожаловать, {nickname}!"
 
 def _get_hw_id():
-    """Получить уникальный ID машины"""
     try:
         import uuid as _uuid
         return str(_uuid.getnode())
@@ -644,7 +643,6 @@ def make_pill_button(parent, text, command=None, bg=BG_ITEM, fg=AC_MAIN,
                      hover_bg=BG_HOVER, hover_fg=TX_WHITE,
                      font=("Segoe UI", 10, "bold"), px=18, py=8,
                      icon=None, accent_left=None, width=None, **kw):
-    """Современная кнопка с hover-эффектом"""
     outer = tk.Frame(parent, bg=bg, cursor="hand2", **kw)
     if width: outer.configure(width=width)
 
@@ -697,7 +695,7 @@ def make_pill_button(parent, text, command=None, bg=BG_ITEM, fg=AC_MAIN,
 
 def make_action_button(parent, text, command=None, style="primary",
                         font=("Segoe UI", 10, "bold"), px=20, py=10, icon=None, **kw):
-    """Кнопка действия с цветным фоном"""
+    """Кнопка действия — ИСПРАВЛЕНО: добавлены атрибуты _inner, _row, _labels"""
     styles = {
         "primary":  (AC_MAIN,   BG_VOID, "#00e0ff", "#001020"),
         "danger":   (AC_RED,    BG_VOID, "#ff6688", "#1a0010"),
@@ -732,6 +730,15 @@ def make_action_button(parent, text, command=None, style="primary",
         w.bind("<Enter>", on_enter)
         w.bind("<Leave>", on_leave)
         w.bind("<Button-1>", on_click)
+
+    # ── ИСПРАВЛЕНИЕ: сохраняем атрибуты как в make_pill_button ──
+    btn._inner = inner
+    btn._row = row
+    btn._labels = labels
+    btn._norm_bg = norm_bg
+    btn._norm_fg = norm_fg
+    btn._h_bg = h_bg
+    btn._h_fg = h_fg
 
     return btn
 
@@ -979,7 +986,6 @@ class ToastManager:
 
 def make_neon_entry(parent, textvariable, show="", placeholder="", width=None,
                     icon=None, bg=BG_ITEM, fg=TX_MAIN, accent=AC_MAIN):
-    """Современное поле ввода с иконкой и подсветкой"""
     outer = tk.Frame(parent, bg=BD_DARK, padx=1, pady=1)
     inner = tk.Frame(outer, bg=bg); inner.pack(fill="x")
 
@@ -1027,7 +1033,6 @@ def make_neon_entry(parent, textvariable, show="", placeholder="", width=None,
 
 
 def make_badge(parent, text, color=AC_MAIN, bg=None):
-    """Цветной бейдж"""
     _bg = bg or lerp_color(BG_VOID, color, 0.15)
     _brd = lerp_color(BG_VOID, color, 0.4)
     f = tk.Frame(parent, bg=_brd, padx=1, pady=1)
@@ -1038,18 +1043,20 @@ def make_badge(parent, text, color=AC_MAIN, bg=None):
 
 
 def make_stat_card(parent, icon, title, value, color=AC_MAIN):
-    """Карточка статистики"""
     _bg = lerp_color(BG_VOID, color, 0.08)
     outer = tk.Frame(parent, bg=color, padx=1, pady=1)
+    outer.pack(side="left", fill="x", expand=True, padx=3)
     inner = tk.Frame(outer, bg=_bg); inner.pack(fill="both", expand=True)
     tk.Frame(inner, bg=color, height=2).pack(fill="x")
     content = tk.Frame(inner, bg=_bg); content.pack(fill="both", padx=12, pady=10)
     top = tk.Frame(content, bg=_bg); top.pack(fill="x")
     tk.Label(top, text=icon, bg=_bg, fg=color, font=("Segoe UI", 16)).pack(side="left", padx=(0, 8))
     tk.Label(top, text=title, bg=_bg, fg=TX_DIM, font=("Segoe UI", 9)).pack(side="left", pady=4)
-    tk.Label(content, text=value, bg=_bg, fg=color,
-             font=("Segoe UI", 22, "bold")).pack(anchor="w", pady=(2, 0))
-    return outer, inner
+    val_lbl = tk.Label(content, text=value, bg=_bg, fg=color,
+             font=("Segoe UI", 22, "bold"))
+    val_lbl.pack(anchor="w", pady=(2, 0))
+    # Возвращаем outer, inner И label для удобного обновления
+    return outer, inner, val_lbl
 
 
 # ══════════════════════════════════════════════════════
@@ -1112,19 +1119,15 @@ class AuthScreen(tk.Tk):
         self._bg = StarfieldCanvas(self)
         self._bg.place(x=0, y=0, width=540, height=680)
 
-        # Центральная карточка
         card = tk.Frame(self, bg=BD_MID, padx=1, pady=1)
         card.place(x=40, y=100, width=460, height=560)
         card_inner = tk.Frame(card, bg=BG_CARD); card_inner.pack(fill="both", expand=True)
 
-        # Верхняя полоса
         tk.Frame(card_inner, bg=AC_MAIN, height=3).pack(fill="x")
 
-        # Заголовок
         hdr = tk.Frame(card_inner, bg=BG_PANEL); hdr.pack(fill="x")
         tk.Frame(hdr, bg=BD_DARK, height=1).pack(fill="x", side="bottom")
 
-        # Крылья + название
         wc = tk.Canvas(hdr, bg=BG_PANEL, width=50, height=50, highlightthickness=0)
         wc.pack(side="left", padx=(16, 8), pady=10)
         self._draw_wings_auth(wc, 25, 28, 18)
@@ -1138,7 +1141,6 @@ class AuthScreen(tk.Tk):
         tk.Label(tf, text=f"v{LAUNCHER_VER}  ·  Minecraft {MC_VERSION}",
                  bg=BG_PANEL, fg=TX_DIM, font=("Segoe UI", 9)).pack(anchor="w")
 
-        # Вкладки
         tab_row = tk.Frame(card_inner, bg=BG_CARD); tab_row.pack(fill="x")
         self._tab_reg = tk.Label(tab_row, text="Регистрация", bg=BG_CARD, fg=AC_MAIN,
                                   font=("Segoe UI", 11, "bold"), cursor="hand2", padx=20, pady=12)
@@ -1150,18 +1152,15 @@ class AuthScreen(tk.Tk):
 
         tk.Frame(card_inner, bg=BD_DARK, height=1).pack(fill="x")
 
-        # Фреймы форм
         self._reg_f = tk.Frame(card_inner, bg=BG_CARD)
         self._log_f = tk.Frame(card_inner, bg=BG_CARD)
         self._build_reg(self._reg_f)
         self._build_log(self._log_f)
 
-        # Статус
         self._status_lbl = tk.Label(card_inner, text="", bg=BG_CARD, fg=AC_RED,
                                      font=("Segoe UI", 9), wraplength=420, justify="center", pady=6)
         self._status_lbl.pack(fill="x", padx=16, side="bottom")
 
-        # Бинды вкладок
         self._tab_reg.bind("<Button-1>", lambda e: self._switch("register"))
         self._tab_log.bind("<Button-1>", lambda e: self._switch("login"))
         self._switch("register")
@@ -1248,13 +1247,6 @@ class AuthScreen(tk.Tk):
         if mode == "register":
             self._tab_reg.configure(fg=AC_MAIN, font=("Segoe UI", 11, "bold"))
             self._tab_log.configure(fg=TX_DIM, font=("Segoe UI", 11))
-            self._tab_line.place(x=0, y=0)  # position via pack
-            self._tab_line.pack_forget()
-            # underline via place in tab_row
-            self._tab_reg.update_idletasks()
-            x = self._tab_reg.winfo_x()
-            w = self._tab_reg.winfo_width()
-            self._tab_line.place_forget()
             self._tab_line.place(in_=self._tab_reg, x=0, rely=1.0, relwidth=1.0, height=2)
             self._reg_f.pack(fill="both", expand=True)
         else:
@@ -1296,14 +1288,7 @@ class AuthScreen(tk.Tk):
 
     def _animate(self):
         try:
-            W, H = 540, 680; cx, cy = 270, 70
-            # Только кольца вверху
-            c = self
-            for i in self._ring_ids:
-                try: pass
-                except: pass
             self._ring_phase = (self._ring_phase + 1.4) % 360
-            self._ring_ids = []
             self.after(30, self._animate)
         except: pass
 
@@ -1415,12 +1400,10 @@ class AngelsLauncher(tk.Tk):
 
         inner = tk.Frame(hdr, bg=BG_CARD); inner.pack(fill="both", expand=True, padx=16)
 
-        # Лого
         wc = tk.Canvas(inner, bg=BG_CARD, width=60, height=60, highlightthickness=0)
         wc.pack(side="left", pady=18, padx=(0, 8))
         self._draw_wings_sm(wc, 30, 34, 20)
 
-        # Название
         tf = tk.Frame(inner, bg=BG_CARD); tf.pack(side="left", pady=20)
         title_row = tk.Frame(tf, bg=BG_CARD); title_row.pack(anchor="w")
         tk.Label(title_row, text="ANGELS", bg=BG_CARD, fg=TX_WHITE,
@@ -1431,10 +1414,8 @@ class AngelsLauncher(tk.Tk):
         tk.Label(sub_row, text=f"MC {MC_VERSION}  ·  Forge {FORGE_VERSION}  ·  {MOD_NAME}",
                  bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 9)).pack(side="left")
 
-        # Сепаратор
         tk.Frame(inner, bg=BD_DARK, width=1).pack(side="left", fill="y", padx=20, pady=16)
 
-        # RAM + статус
         sf = tk.Frame(inner, bg=BG_CARD); sf.pack(side="left", pady=22)
         tk.Label(sf, text=f"RAM: {TOTAL_RAM} ГБ", bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 8)).pack(anchor="w")
         dot_row = tk.Frame(sf, bg=BG_CARD); dot_row.pack(anchor="w")
@@ -1445,10 +1426,8 @@ class AngelsLauncher(tk.Tk):
         self._update_dot.pack(anchor="w")
         self._pulse_dot()
 
-        # Правая часть
         rf = tk.Frame(inner, bg=BG_CARD); rf.pack(side="right", pady=12)
 
-        # Профиль badge
         is_adm = self._adm
         prof_bg = lerp_color(BG_VOID, ADM_ACC if is_adm else AC_MAIN, 0.12)
         badge_brd = ADM_ACC if is_adm else AC_MAIN
@@ -1470,7 +1449,6 @@ class AngelsLauncher(tk.Tk):
             try: w.bind("<Button-1>", lambda e: self._show("profile"))
             except: pass
 
-        # Часы + F11
         self._clk = tk.Label(rf, text="", bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 9))
         self._clk.pack(side="bottom")
         fs_btn = make_pill_button(rf, "⛶ F11", command=self._toggle_fs,
@@ -1524,7 +1502,6 @@ class AngelsLauncher(tk.Tk):
         side.pack(side="left", fill="y"); side.pack_propagate(False)
         tk.Frame(side, bg=BD_MID, width=1).pack(side="right", fill="y")
 
-        # Мини-лого
         mc = tk.Canvas(side, bg=BG_CARD, width=36, height=26, highlightthickness=0)
         mc.pack(pady=(12, 0), padx=16, anchor="w")
         self._draw_wings_sm(mc, 18, 15, 8)
@@ -1551,7 +1528,6 @@ class AngelsLauncher(tk.Tk):
 
         for item in sections:
             if len(item) == 2:
-                # Секция-заголовок
                 sf = tk.Frame(side, bg=BG_CARD); sf.pack(fill="x", padx=10, pady=(8, 2))
                 tk.Frame(sf, bg=BD_DARK, height=1).pack(fill="x", side="left", expand=True, pady=6)
                 lbl_col = ADM_ACC if "ADMIN" in item[0] else TX_DARK
@@ -1563,7 +1539,6 @@ class AngelsLauncher(tk.Tk):
             icon, name, key, is_adm_item, acc = item
             accent_col = ADM_ACC if is_adm_item else acc
             normal_fg = ADM_ACC if is_adm_item else TX_MID
-
             btn_bg = lerp_color(BG_VOID, ADM_BG, 0.5) if is_adm_item else BG_CARD
 
             btn = make_pill_button(
@@ -1578,7 +1553,6 @@ class AngelsLauncher(tk.Tk):
             btn._normal_fg = normal_fg
             self._tabs[key] = btn
 
-        # Подписка в сайдбаре
         tk.Frame(side, bg=BD_DARK, height=1).pack(fill="x", padx=12, pady=8)
         valid, status = check_subscription(self._user)
         sub_col = AC_GREEN if valid else AC_RED
@@ -1614,7 +1588,6 @@ class AngelsLauncher(tk.Tk):
                 btn._row.configure(bg=active_bg)
                 for lbl in btn._labels:
                     lbl.configure(bg=active_bg, fg=acc)
-                # Accent bar
                 if not hasattr(btn, '_active_bar') or btn._active_bar is None:
                     bar = tk.Frame(btn, bg=acc, width=3)
                     bar.place(x=0, y=0, width=3, relheight=1)
@@ -1638,8 +1611,7 @@ class AngelsLauncher(tk.Tk):
     def _section_header(self, parent, text, icon="◈", color=AC_MAIN):
         f = tk.Frame(parent, bg=BG_VOID); f.pack(fill="x", pady=(0, 14))
         row = tk.Frame(f, bg=BG_VOID); row.pack(fill="x")
-        icon_lbl = tk.Label(row, text=icon, bg=BG_VOID, fg=color, font=("Segoe UI", 14))
-        icon_lbl.pack(side="left", padx=(0, 8))
+        tk.Label(row, text=icon, bg=BG_VOID, fg=color, font=("Segoe UI", 14)).pack(side="left", padx=(0, 8))
         tk.Label(row, text=text, bg=BG_VOID, fg=TX_WHITE,
                  font=("Segoe UI", 15, "bold")).pack(side="left")
         tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", pady=(8, 0))
@@ -1662,10 +1634,7 @@ class AngelsLauncher(tk.Tk):
     # ══════════════════════════════════════════════════
     def _mk_home(self, parent):
         f = tk.Frame(parent, bg=BG_VOID)
-        # Верх — крылья + инфо
         top = tk.Frame(f, bg=BG_VOID); top.pack(fill="x", pady=(0, 10))
-        left = tk.Frame(top, bg=BG_VOID); left.pack(side="left", fill="both", expand=True)
-        right = tk.Frame(top, bg=BG_VOID); right.pack(side="right", fill="both", expand=True)
         center = tk.Frame(top, bg=BG_VOID); center.pack(side="left")
         wc = tk.Canvas(center, bg=BG_VOID, width=180, height=100, highlightthickness=0)
         wc.pack(pady=(0, 4))
@@ -1676,7 +1645,6 @@ class AngelsLauncher(tk.Tk):
         tk.Label(center, text=f"v{installed_v}  ·  MC {MC_VERSION}",
                  bg=BG_VOID, fg=TX_DIM, font=("Segoe UI", 9)).pack(pady=(1, 0))
 
-        # Инфо-карточка
         card = self._neon_card(f, AC_MAIN, fill="x", pady=(0, 8))
         valid, sub_status = check_subscription(self._user)
         rows = [
@@ -1698,7 +1666,6 @@ class AngelsLauncher(tk.Tk):
                      font=("Segoe UI", 10, "bold")).pack(side="right", padx=14)
         tk.Frame(card, bg=BD_DARK, height=1).pack(fill="x")
 
-        # Статус + прогресс
         meta = tk.Frame(f, bg=BG_VOID); meta.pack(fill="x", pady=(8, 2))
         tk.Label(meta, textvariable=self.status, bg=BG_VOID, fg=TX_MID,
                  font=("Segoe UI", 9), anchor="w").pack(side="left")
@@ -1711,7 +1678,6 @@ class AngelsLauncher(tk.Tk):
         self._pb.pack(fill="x", pady=(2, 10))
         self.progress.trace_add("write", lambda *_: self._pb.set(self.progress.get()/100))
 
-        # Кнопка ИГРАТЬ
         self.play_btn = GlowButton(f, "◈   ИГРАТЬ", command=self._start,
                                     bg=BG_CARD, fg=AC_MAIN, glow=AC_MAIN,
                                     font=("Segoe UI", 15, "bold"), height=68)
@@ -1726,7 +1692,6 @@ class AngelsLauncher(tk.Tk):
         self._section_header(f, "Личный кабинет", "◉", AC_CYAN)
         u = self._user
 
-        # Аватар-карточка
         card = self._neon_card(f, AC_MAIN, fill="x", pady=(0, 10))
         top = tk.Frame(card, bg=BG_CARD); top.pack(fill="x", padx=16, pady=14)
 
@@ -1746,12 +1711,10 @@ class AngelsLauncher(tk.Tk):
         if u: tk.Label(inf, text=f"С нами с: {u.get('date', '—')[:10]}",
                         bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 9)).pack(anchor="w")
 
-        # Подписка бейдж
         valid, sub_status = check_subscription(u)
         sub_col = AC_GREEN if valid else AC_RED
         make_badge(top, f"{'✓' if valid else '⚠'} {sub_status}", sub_col).pack(side="right", padx=4)
 
-        # Статы
         stats_row = tk.Frame(card, bg=BG_CARD); stats_row.pack(fill="x", padx=16, pady=(0, 14))
         stats_data = [
             ("◉", "Входов", str(u.get("login_count", 1)) if u else "—", AC_MAIN),
@@ -1768,7 +1731,6 @@ class AngelsLauncher(tk.Tk):
             tk.Label(sb, text=val, bg=lerp_color(BG_VOID, col, 0.08),
                      fg=col, font=("Segoe UI", 10, "bold")).pack(pady=(0, 4))
 
-        # Смена пароля
         pw_card = self._neon_card(f, AC_GLOW, title="Изменить пароль", fill="x", pady=(0, 10))
         pr = tk.Frame(pw_card, bg=BG_CARD); pr.pack(fill="x", padx=16, pady=(8, 0))
 
@@ -1788,7 +1750,6 @@ class AngelsLauncher(tk.Tk):
                             style="ghost", font=("Segoe UI", 10, "bold"),
                             px=16, py=8, icon="🔒").pack(side="left")
 
-        # Выйти
         make_action_button(f, "⊘   Выйти из аккаунта", command=self._logout,
                             style="danger", font=("Segoe UI", 10), px=16, py=10,
                             icon="⊘").pack(anchor="w", pady=(6, 0))
@@ -1828,7 +1789,6 @@ class AngelsLauncher(tk.Tk):
                             style="ghost", font=("Segoe UI", 10, "bold"),
                             px=14, py=7, icon="+").pack(side="right")
 
-        # Предупреждение AuthMe
         note = tk.Frame(f, bg=lerp_color(BG_VOID, AC_ORANGE, 0.08),
                         highlightthickness=1,
                         highlightbackground=lerp_color(BG_VOID, AC_ORANGE, 0.4))
@@ -1969,7 +1929,6 @@ class AngelsLauncher(tk.Tk):
         self.console.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y"); self.console.pack(fill="both", expand=True)
 
-        # Поле ввода
         inp_out = tk.Frame(f, bg=BD_MID, padx=1, pady=1); inp_out.pack(fill="x", pady=(6, 0))
         inp_inn = tk.Frame(inp_out, bg=BG_ITEM); inp_inn.pack(fill="x")
         tk.Frame(inp_inn, bg=BD_DARK, height=1).pack(fill="x")
@@ -2117,7 +2076,6 @@ class AngelsLauncher(tk.Tk):
             widget_fn(row)
 
         def mk_nick(r):
-            nv = tk.StringVar(value=self.username.get())
             e = make_neon_entry(r, self.username, placeholder="Никнейм", icon="◈")
             e.pack(side="right", padx=14, pady=10, ipadx=6)
 
@@ -2279,13 +2237,14 @@ class AngelsLauncher(tk.Tk):
         self.after(300, lambda: self._updater.restart_with_update(bat_path))
 
     # ══════════════════════════════════════════════════
-    #  ADMIN — ИСПРАВЛЕННАЯ ВЕРСИЯ
-    #  Теперь показывает ВСЕХ пользователей из users.json
+    #  ADMIN PANEL
+    #  ИСПРАВЛЕНИЕ ГЛАВНОЕ: _asub() больше не обращается
+    #  к _inner/_row/_labels у кнопок make_action_button,
+    #  т.к. теперь make_action_button сам хранит эти атрибуты.
     # ══════════════════════════════════════════════════
     def _mk_admin(self, parent):
         f = tk.Frame(parent, bg=ADM_BG)
 
-        # Шапка
         hdr = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         hdr.pack(fill="x", pady=(0, 12))
         tk.Frame(hdr, bg=ADM_ACC, height=3).pack(fill="x")
@@ -2296,7 +2255,6 @@ class AngelsLauncher(tk.Tk):
         tk.Label(hdr_row, text=time.strftime("[%Y-%m-%d  %H:%M]"), bg=ADM_PANEL, fg=ADM_MUTE,
                  font=("Courier", 9)).pack(side="right")
 
-        # Вкладки
         tabs_row = tk.Frame(f, bg=ADM_BG); tabs_row.pack(fill="x", pady=(0, 10))
         self._asub_panels = {}; self._asub_btns = {}
         subs = [
@@ -2324,26 +2282,39 @@ class AngelsLauncher(tk.Tk):
         return f
 
     def _asub(self, key):
+        """
+        ИСПРАВЛЕНО: теперь использует _inner, _row, _labels из make_action_button
+        (которые теперь правильно устанавливаются в make_action_button).
+        """
         for p in self._asub_panels.values(): p.pack_forget()
         for k, b in self._asub_btns.items():
             is_active = (k == key)
-            bg = lerp_color(ADM_BG, ADM_ACC, 0.15) if is_active else ADM_PANEL
-            fg = ADM_ACC if is_active else "#660044"
-            font = ("Courier", 10, "bold") if is_active else ("Courier", 10)
-            b.configure(bg=bg); b._inner.configure(bg=bg); b._row.configure(bg=bg)
-            for lbl in b._labels:
-                lbl.configure(bg=bg, fg=fg, font=font)
+            if is_active:
+                active_bg = lerp_color(ADM_BG, ADM_ACC, 0.15)
+                active_fg = ADM_ACC
+                active_font = ("Courier", 10, "bold")
+            else:
+                active_bg = ADM_PANEL
+                active_fg = "#660044"
+                active_font = ("Courier", 10)
+            try:
+                b.configure(bg=active_bg)
+                b._inner.configure(bg=active_bg)
+                b._row.configure(bg=active_bg)
+                for lbl in b._labels:
+                    lbl.configure(bg=active_bg, fg=active_fg, font=active_font)
+            except Exception:
+                pass
         self._asub_panels[key].pack(fill="both", expand=True)
 
     def _mk_a_dash(self, parent):
         f = tk.Frame(parent, bg=ADM_BG)
 
-        # Заголовок
         tk.Label(f, text="◈  СТАТИСТИКА СИСТЕМЫ",
                  bg=ADM_BG, fg=ADM_ACC, font=("Courier", 12, "bold")).pack(anchor="w", pady=(0, 8))
 
-        # Карточки статов
         cr = tk.Frame(f, bg=ADM_BG); cr.pack(fill="x", pady=(0, 10))
+        # ИСПРАВЛЕНО: make_stat_card теперь возвращает (outer, inner, val_label)
         self._adm_cards = {}
         stats_cfg = [
             ("tu", "◈", "Игроков всего", "0", ADM_ACC),
@@ -2354,23 +2325,13 @@ class AngelsLauncher(tk.Tk):
             ("ex", "✕", "Просрочено",     "0", AC_RED),
         ]
         for key, icon, title, val, col in stats_cfg:
-            card_outer, card_inner = make_stat_card(cr, icon, title, val, col)
-            card_outer.pack(side="left", fill="x", expand=True, padx=3)
-            # Найдём Label с большим значением
-            for w in card_inner.winfo_children():
-                for ww in w.winfo_children():
-                    if hasattr(ww, 'cget') and isinstance(ww, tk.Label):
-                        try:
-                            if ww.cget("font") and "22" in str(ww.cget("font")):
-                                self._adm_cards[key] = ww
-                        except: pass
+            outer, inner, val_lbl = make_stat_card(cr, icon, title, val, col)
+            self._adm_cards[key] = val_lbl
 
-        # Кнопка обновления
         make_action_button(f, "↻  Обновить данные", command=self._a_refresh,
                             style="ghost", font=("Courier", 9), px=14, py=7,
                             icon="↻").pack(anchor="w", pady=(0, 10))
 
-        # Путь к базе
         path_frame = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         path_frame.pack(fill="x", pady=(0, 8))
         tk.Frame(path_frame, bg=ADM_ACC2, height=1).pack(fill="x")
@@ -2379,7 +2340,6 @@ class AngelsLauncher(tk.Tk):
         tk.Label(pr, text=str(USERS_FILE), bg=ADM_PANEL, fg=ADM_ACC,
                  font=("Courier", 8)).pack(side="left", padx=8)
 
-        # Последние регистрации
         tk.Label(f, text="Последние регистрации:", bg=ADM_BG, fg=ADM_TEXT,
                  font=("Courier", 10, "bold")).pack(anchor="w", pady=(4, 4))
         rf = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
@@ -2390,7 +2350,6 @@ class AngelsLauncher(tk.Tk):
         return f
 
     def _a_stats(self):
-        """Загружает статистику — ЧИТАЕТ ВСЕ ДАННЫЕ из файла"""
         try:
             users = _load_users()
             used = _load_used_keys()
@@ -2533,21 +2492,18 @@ class AngelsLauncher(tk.Tk):
         self._toast.show(f"{count} тайм-ключей [{dur}]", kind="success")
 
     def _mk_a_users(self, parent):
-        """ИГРОКИ — показывает ВСЕХ из users.json"""
         f = tk.Frame(parent, bg=ADM_BG)
 
         top = tk.Frame(f, bg=ADM_BG); top.pack(fill="x", pady=(0, 8))
         tk.Label(top, text="◐  ВСЕ ИГРОКИ", bg=ADM_BG, fg=ADM_ACC,
                  font=("Courier", 12, "bold")).pack(side="left")
 
-        # Счётчик
         self._usr_count_lbl = tk.Label(top, text="", bg=ADM_BG, fg=ADM_TEXT, font=("Courier", 10))
         self._usr_count_lbl.pack(side="left", padx=12)
 
         make_action_button(top, "↻ Обновить", command=self._a_refresh_u,
                             style="ghost", font=("Courier", 9), px=10, py=5, icon="↻").pack(side="right")
 
-        # Поиск
         sr = tk.Frame(f, bg=ADM_BG); sr.pack(fill="x", pady=(0, 6))
         tk.Label(sr, text="Поиск:", bg=ADM_BG, fg=ADM_TEXT, font=("Courier", 10)).pack(side="left")
         self._usr_q = tk.StringVar()
@@ -2556,19 +2512,16 @@ class AngelsLauncher(tk.Tk):
                       insertbackground=ADM_ACC, relief="flat", font=("Courier", 10), bd=6, width=24)
         qe.pack(side="left", padx=8, ipady=4)
 
-        # Фильтр по статусу
         self._usr_filter = tk.StringVar(value="all")
         for lbl_t, val in [("Все", "all"), ("Активные", "active"), ("Истекло", "expired"), ("Забанен", "banned")]:
             make_action_button(sr, lbl_t,
                                 command=lambda v=val: (self._usr_filter.set(v), self._a_refresh_u()),
                                 style="ghost", font=("Courier", 8), px=8, py=3).pack(side="left", padx=2)
 
-        # Таблица
         tbl = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         tbl.pack(fill="both", expand=True)
         tk.Frame(tbl, bg=ADM_ACC, height=1).pack(fill="x")
 
-        # Заголовки
         hdr = tk.Frame(tbl, bg="#0d0005"); hdr.pack(fill="x")
         for text, w in [("#", 3), ("Никнейм", 14), ("Дата рег.", 11), ("Послед. вход", 11),
                         ("Подписка", 14), ("Входов", 6), ("Тип ключа", 12), ("Действия", 14)]:
@@ -2576,7 +2529,6 @@ class AngelsLauncher(tk.Tk):
                      width=w, anchor="w").pack(side="left", padx=4, pady=6)
         tk.Frame(tbl, bg=ADM_MUTE, height=1).pack(fill="x")
 
-        # Прокручиваемая область
         sf = tk.Frame(tbl, bg=ADM_PANEL); sf.pack(fill="both", expand=True)
         canvas = tk.Canvas(sf, bg=ADM_PANEL, highlightthickness=0)
         scr = ttk.Scrollbar(sf, orient="vertical", command=canvas.yview)
@@ -2587,7 +2539,6 @@ class AngelsLauncher(tk.Tk):
         canvas.configure(yscrollcommand=scr.set)
         scr.pack(side="right", fill="y"); canvas.pack(side="left", fill="both", expand=True)
 
-        # Прокрутка колесом
         def _on_scroll(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         canvas.bind("<MouseWheel>", _on_scroll)
@@ -2596,7 +2547,6 @@ class AngelsLauncher(tk.Tk):
         return f
 
     def _a_refresh_u(self):
-        """Загружает и показывает ВСЕХ пользователей"""
         for w in self._usr_inner.winfo_children(): w.destroy()
 
         users = _load_users()
@@ -2604,7 +2554,6 @@ class AngelsLauncher(tk.Tk):
         q = self._usr_q.get().strip().lower() if hasattr(self, "_usr_q") else ""
         flt = self._usr_filter.get() if hasattr(self, "_usr_filter") else "all"
 
-        # Применяем фильтры
         items = []
         for kh, u in users.items():
             if q and q not in u.get("nickname","").lower(): continue
@@ -2613,10 +2562,8 @@ class AngelsLauncher(tk.Tk):
             if flt == "banned" and kh not in bl: continue
             items.append((kh, u))
 
-        # Сортировка — новые сверху
         items.sort(key=lambda x: x[1].get("date",""), reverse=True)
 
-        # Обновить счётчик
         try:
             self._usr_count_lbl.configure(
                 text=f"Показано: {len(items)} / {len(users)}")
@@ -2636,11 +2583,9 @@ class AngelsLauncher(tk.Tk):
             is_bl = kh in bl
             is_adm_u = u.get("is_admin", False)
 
-            # Номер
             tk.Label(row, text=str(idx+1), bg=bg2, fg=ADM_MUTE,
                      font=("Courier", 8), width=3, anchor="w").pack(side="left", padx=4, pady=6)
 
-            # Ник + иконки
             nick_frame = tk.Frame(row, bg=bg2); nick_frame.pack(side="left", padx=2)
             nick_color = ADM_RED if is_bl else (ADM_GOLD if is_adm_u else ADM_ACC)
             nick_prefix = "⊘" if is_bl else ("⚡" if is_adm_u else "◈")
@@ -2648,28 +2593,23 @@ class AngelsLauncher(tk.Tk):
                      bg=bg2, fg=nick_color, font=("Courier", 9, "bold"),
                      width=14, anchor="w").pack()
 
-            # Даты
             tk.Label(row, text=u.get("date","—")[:10], bg=bg2, fg=ADM_TEXT,
                      font=("Courier", 8), width=11, anchor="w").pack(side="left", padx=4)
             tk.Label(row, text=u.get("last_login","—")[:10], bg=bg2, fg=ADM_MUTE,
                      font=("Courier", 8), width=11, anchor="w").pack(side="left", padx=4)
 
-            # Подписка
             valid, sub = check_subscription(u)
             sc = AC_GREEN if valid else AC_RED
             tk.Label(row, text=sub[:13], bg=bg2, fg=sc,
                      font=("Courier", 8), width=14, anchor="w").pack(side="left", padx=4)
 
-            # Входы
             tk.Label(row, text=str(u.get("login_count",0)), bg=bg2, fg=ADM_GOLD,
                      font=("Courier", 8), width=6, anchor="w").pack(side="left", padx=4)
 
-            # Тип ключа
             dk = u.get("duration_label","∞")[:11]
             tk.Label(row, text=dk, bg=bg2, fg=ADM_ACC2,
                      font=("Courier", 8), width=12, anchor="w").pack(side="left", padx=4)
 
-            # Кнопки действий
             bf = tk.Frame(row, bg=bg2); bf.pack(side="right", padx=6)
             if is_bl:
                 make_action_button(bf, "Разбан", command=lambda k=kh: self._a_unban(k),
@@ -2681,12 +2621,10 @@ class AngelsLauncher(tk.Tk):
                                 style="danger", font=("Courier", 8), px=6, py=2).pack(side="left", padx=1)
 
     def _mk_a_export(self, parent):
-        """Экспорт/импорт базы пользователей"""
         f = tk.Frame(parent, bg=ADM_BG)
         tk.Label(f, text="📤  ЭКСПОРТ / ИМПОРТ БАЗЫ",
                  bg=ADM_BG, fg=ADM_ACC, font=("Courier", 12, "bold")).pack(anchor="w", pady=(0, 8))
 
-        # Путь к файлу
         info_card = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         info_card.pack(fill="x", pady=(0, 12))
         tk.Frame(info_card, bg=ADM_ACC, height=1).pack(fill="x")
@@ -2697,7 +2635,6 @@ class AngelsLauncher(tk.Tk):
         tk.Label(ic, text=f"Записей: {len(users)}", bg=ADM_PANEL, fg=ADM_GOLD,
                  font=("Courier", 10, "bold")).pack(anchor="w", pady=(4, 0))
 
-        # Кнопки экспорта
         exp_card = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         exp_card.pack(fill="x", pady=(0, 8))
         tk.Frame(exp_card, bg=ADM_ACC2, height=1).pack(fill="x")
@@ -2714,7 +2651,6 @@ class AngelsLauncher(tk.Tk):
                             font=("Courier", 10), px=14, py=10, icon="📋"
                             ).pack(side="left", padx=4)
 
-        # Импорт
         imp_card = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         imp_card.pack(fill="x", pady=(0, 8))
         tk.Frame(imp_card, bg=ADM_GOLD, height=1).pack(fill="x")
@@ -2733,7 +2669,6 @@ class AngelsLauncher(tk.Tk):
         return f
 
     def _export_users(self):
-        """Экспортировать всю базу в JSON"""
         try:
             path = filedialog.asksaveasfilename(
                 parent=self, title="Сохранить базу пользователей",
@@ -2743,7 +2678,6 @@ class AngelsLauncher(tk.Tk):
             )
             if not path: return
             users = _load_users()
-            # Убираем хэши паролей из экспорта для безопасности (оставляем всё кроме hash)
             export_data = {
                 "export_date": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "launcher_version": LAUNCHER_VER,
@@ -2759,7 +2693,6 @@ class AngelsLauncher(tk.Tk):
             self._toast.show(f"Ошибка экспорта", kind="error")
 
     def _export_nicks(self):
-        """Экспортировать список ников в TXT"""
         try:
             path = filedialog.asksaveasfilename(
                 parent=self, title="Сохранить список ников",
@@ -2784,7 +2717,6 @@ class AngelsLauncher(tk.Tk):
             self._export_status.configure(text=f"✗ Ошибка: {e}", fg=AC_RED)
 
     def _import_users(self):
-        """Импортировать и слить базу из JSON"""
         try:
             path = filedialog.askopenfilename(
                 parent=self, title="Выбрать файл users.json для импорта",
@@ -2794,7 +2726,6 @@ class AngelsLauncher(tk.Tk):
             with open(path, 'r', encoding='utf-8') as fp:
                 data = json.load(fp)
 
-            # Поддержка обоих форматов: прямой users.json и экспортированный
             if "users" in data and isinstance(data["users"], dict):
                 import_users = data["users"]
             elif isinstance(data, dict) and all(len(k) == 64 for k in list(data.keys())[:3] if k):
