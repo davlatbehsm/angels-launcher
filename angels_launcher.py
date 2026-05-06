@@ -21,7 +21,7 @@ Angels Launcher v14.0  —  Neon Edition
 LAUNCHER_NAME = "Angels Launcher"
 LAUNCHER_VER  = "14.0.0"
 MOD_NAME      = "Angels Mod"
-MOD_VERSION   = "1.1.0"
+MOD_VERSION   = "1.2.0"
 MC_VERSION    = "1.16.5"
 FORGE_VERSION = "36.2.39"
 SUPER_ADMIN   = "validka3"
