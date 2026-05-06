@@ -1,25 +1,61 @@
 """
-Angels Launcher v14.0  —  Neon Edition
+Angels Launcher v15.0  —  Crystal Edition
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ИСПРАВЛЕНО В v14.0:
-  ◈ DEMO MODE FIX — полностью убран демо-режим
-  ◈ Пиратский запуск как в Legacy Launcher (--accessToken, --uuid, --userType legacy)
-  ◈ Корректный auth_access_token и user_type для обхода проверки
-  ◈ Новая ссылка на мод (Google Drive прямая)
-  ◈ Автопроверка и обновление мода при смене ссылки
-  ◈ Улучшенное меню — быстрые кнопки, компактный layout
-  ◈ Оптимизирован код
+  ИСПРАВЛЕНО В v15.0:
+  ◈ FIX: Python DLL ошибка — добавлен sys.path fix для PyInstaller
+  ◈ FIX: Корректная распаковка нативов при frozen-режиме
+  ◈ FIX: Temp-папка для PyInstaller (_MEIPASS)
+  ◈ DEMO MODE — полностью убран
+  ◈ Пиратский запуск Legacy (--accessToken, --uuid, --userType legacy)
+  ◈ Новый UI — Crystal Edition (более чёткий, контрастный дизайн)
+  ◈ Анимированный прогресс-бар с shimmer-эффектом
+  ◈ Улучшенные карточки с gradient-бордерами
+  ◈ Компактный layout с секциями
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Admin: python angels_launcher_v14.py --angelsvistop121
-  Keygen: python angels_launcher_v14.py --keygen [n]
+  Admin: python angels_launcher_v15.py --angelsvistop121
+  Keygen: python angels_launcher_v15.py --keygen [n]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+
+# ══════════════════════════════════════════════════════
+#  PYINSTALLER DLL FIX — ОБЯЗАТЕЛЬНО ПЕРВЫМ
+# ══════════════════════════════════════════════════════
+import sys, os
+
+def _fix_pyinstaller_paths():
+    """
+    Исправляет ошибку 'Failed to load Python DLL' в PyInstaller.
+    Проблема: при запуске .exe PyInstaller распаковывает файлы во временную
+    папку _MEIXXXXX, но иногда sys.path не содержит этот путь.
+    """
+    if getattr(sys, 'frozen', False):
+        # Запущено как PyInstaller .exe
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+        exe_dir = os.path.dirname(sys.executable)
+        
+        # Добавляем пути если их нет
+        for path in [bundle_dir, exe_dir]:
+            if path not in sys.path:
+                sys.path.insert(0, path)
+        
+        # Устанавливаем переменные окружения для DLL поиска
+        os.environ['PATH'] = bundle_dir + os.pathsep + exe_dir + os.pathsep + os.environ.get('PATH', '')
+        
+        # Windows-специфичная загрузка DLL
+        if sys.platform == 'win32':
+            try:
+                import ctypes
+                ctypes.windll.kernel32.SetDllDirectoryW(bundle_dir)
+            except Exception:
+                pass
+
+_fix_pyinstaller_paths()
 
 # ══════════════════════════════════════════════════════
 #  CONFIG
 # ══════════════════════════════════════════════════════
 LAUNCHER_NAME = "Angels Launcher"
-LAUNCHER_VER  = "14.1.0"
+LAUNCHER_VER  = "15.0.0"
 MOD_NAME      = "Angels Mod"
 MOD_VERSION   = "1.2.0"
 MC_VERSION    = "1.16.5"
@@ -30,48 +66,49 @@ GITHUB_REPO   = "davlatbehsm/angels-launcher"
 GITHUB_RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # ══════════════════════════════════════════════════════
-#  NEON PALETTE
+#  CRYSTAL NEON PALETTE — улучшенная палитра
 # ══════════════════════════════════════════════════════
-BG_VOID   = "#00040c"
-BG_BASE   = "#000810"
-BG_CARD   = "#040d1c"
-BG_PANEL  = "#060f20"
-BG_ITEM   = "#081428"
-BG_HOVER  = "#0c1e38"
-BG_ACTIVE = "#0f2448"
-BD_DARK   = "#0c1e36"
-BD_MID    = "#123060"
-BD_LIGHT  = "#1a4878"
-BD_GLOW   = "#2060a0"
-AC_MAIN   = "#00c8ff"
-AC_GLOW   = "#00a8e8"
-AC_DIM    = "#0080b8"
-AC_CYAN   = "#00ffee"
-AC_MINT   = "#00ffaa"
-AC_PURPLE = "#8844ff"
-AC_GOLD   = "#ffcc00"
-AC_RED    = "#ff3355"
-AC_ORANGE = "#ff8833"
-AC_GREEN  = "#00e87a"
-TX_WHITE  = "#f4faff"
-TX_MAIN   = "#c8e8ff"
-TX_MID    = "#7aaccc"
-TX_DIM    = "#3a6888"
-TX_DARK   = "#1a3850"
-ADM_BG    = "#060010"
-ADM_PANEL = "#0c0020"
-ADM_ACC   = "#ff00cc"
-ADM_RED   = "#ff2244"
-ADM_GOLD  = "#ffdd00"
-ADM_MUTE  = "#3a0038"
-ADM_TEXT  = "#ffccee"
-ADM_ACC2  = "#cc0088"
-BUBBLE_COLS = ["#00c8ff","#0088d4","#00ffee","#00aaff","#40d8ff","#80f0ff","#00ccbb","#60d0ff","#ffffff","#00ffaa"]
+BG_VOID    = "#000508"
+BG_BASE    = "#000c14"
+BG_CARD    = "#020e1c"
+BG_PANEL   = "#041020"
+BG_ITEM    = "#061428"
+BG_HOVER   = "#0a1e38"
+BG_ACTIVE  = "#0d2448"
+BD_DARK    = "#0a1e36"
+BD_MID     = "#0f2d54"
+BD_LIGHT   = "#1a4070"
+BD_GLOW    = "#2060a0"
+AC_MAIN    = "#00d4ff"
+AC_GLOW    = "#00b8e8"
+AC_DIM     = "#0090cc"
+AC_CYAN    = "#00ffe8"
+AC_MINT    = "#00ffb8"
+AC_PURPLE  = "#9955ff"
+AC_GOLD    = "#ffd000"
+AC_RED     = "#ff2244"
+AC_ORANGE  = "#ff8800"
+AC_GREEN   = "#00ff88"
+AC_PINK    = "#ff44cc"
+TX_WHITE   = "#f0f8ff"
+TX_MAIN    = "#c0e8ff"
+TX_MID     = "#6aa0cc"
+TX_DIM     = "#304860"
+TX_DARK    = "#182838"
+ADM_BG     = "#030008"
+ADM_PANEL  = "#08001a"
+ADM_ACC    = "#ff00dd"
+ADM_RED    = "#ff1144"
+ADM_GOLD   = "#ffdd00"
+ADM_MUTE   = "#380034"
+ADM_TEXT   = "#ffbbee"
+ADM_ACC2   = "#cc0088"
+BUBBLE_COLS = ["#00d4ff","#0090d4","#00ffe8","#00bbff","#44dcff","#88f4ff","#00cccc","#66d8ff","#ffffff","#00ffb8"]
 
 # ══════════════════════════════════════════════════════
 #  IMPORTS
 # ══════════════════════════════════════════════════════
-import os, sys, json, uuid, shutil, zipfile, platform, hashlib
+import json, uuid, shutil, zipfile, platform, hashlib
 import threading, subprocess, urllib.request, time, socket, math, random
 import datetime, hmac as _hmac, tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -79,9 +116,13 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ══════════════════════════════════════════════════════
-#  PATHS
+#  PATHS — с поддержкой PyInstaller
 # ══════════════════════════════════════════════════════
-APPDATA        = Path(os.getenv("APPDATA", str(Path.home()))) / ".angels-launcher"
+def _get_appdata_dir():
+    """Получаем правильный путь независимо от режима запуска."""
+    return Path(os.getenv("APPDATA", str(Path.home()))) / ".angels-launcher"
+
+APPDATA        = _get_appdata_dir()
 MC_DIR         = APPDATA / "minecraft"
 VERSIONS_DIR   = MC_DIR / "versions"
 LIBRARIES_DIR  = MC_DIR / "libraries"
@@ -99,7 +140,10 @@ SERVERS_FILE   = APPDATA / "servers.json"
 MOD_URL_FILE   = APPDATA / "mod_url.json"
 
 def _get_installed_version_file() -> Path:
-    base = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
+    if getattr(sys, 'frozen', False):
+        base = Path(sys.executable).parent
+    else:
+        base = Path(__file__).resolve().parent
     return base / "angels_launcher_version.json"
 
 INSTALLED_VERSION_FILE = _get_installed_version_file()
@@ -128,13 +172,11 @@ MAVEN_FORGE      = "https://maven.minecraftforge.net/"
 DOWNLOAD_THREADS = 8
 
 # ══════════════════════════════════════════════════════
-#  MOD URL — новая ссылка v14.0
-#  Конвертируем Google Drive share → прямой download URL
+#  MOD URL
 # ══════════════════════════════════════════════════════
 MOD_URL_DEFAULT = "https://drive.google.com/uc?export=download&id=1c1S3MSGSblcZr02fMdyGIR96MsLtnlg9"
 
 def _gdrive_direct(url: str) -> str:
-    """Конвертирует любую Google Drive ссылку в прямой download URL."""
     import re
     m = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
     if m:
@@ -161,7 +203,6 @@ def _get_mod_url() -> str:
     return cfg.get("url", MOD_URL_DEFAULT)
 
 def check_mod_url_changed(new_url: str) -> bool:
-    """Возвращает True если URL изменился."""
     cfg = _load_mod_url_config()
     old_h = cfg.get("url_hash", "")
     new_h = hashlib.md5(new_url.encode()).hexdigest()
@@ -349,20 +390,25 @@ def get_total_ram_gb():
 TOTAL_RAM = get_total_ram_gb()
 
 def get_java():
+    """Поиск Java с учётом PyInstaller окружения."""
     candidates = ["java"]
     if platform.system() == "Windows":
         roots = [r"C:\Program Files\Java", r"C:\Program Files\Eclipse Adoptium",
                  r"C:\Program Files\Microsoft", r"C:\Program Files\BellSoft",
                  r"C:\Program Files\Zulu", r"C:\Program Files\Temurin",
-                 r"C:\Program Files (x86)\Java"]
+                 r"C:\Program Files (x86)\Java", r"C:\Program Files\Java\jre1.8.0_202",
+                 r"C:\Program Files\Common Files\Oracle\Java\javapath"]
         for root in roots:
             if os.path.isdir(root):
-                for sub in sorted(os.listdir(root), reverse=True):
-                    j = os.path.join(root, sub, "bin", "java.exe")
-                    if os.path.isfile(j): candidates.insert(0, j)
+                try:
+                    for sub in sorted(os.listdir(root), reverse=True):
+                        j = os.path.join(root, sub, "bin", "java.exe")
+                        if os.path.isfile(j): candidates.insert(0, j)
+                except: pass
     for j in candidates:
         try:
-            if subprocess.run([j, "-version"], capture_output=True, timeout=5).returncode == 0: return j
+            result = subprocess.run([j, "-version"], capture_output=True, timeout=5)
+            if result.returncode == 0: return j
         except: pass
     return None
 
@@ -499,7 +545,11 @@ class ParallelDownloader:
 class AutoUpdater:
     def __init__(self):
         self._latest_info = None
-        self._script_path = Path(__file__).resolve(); self._script_mtime = self._get_mtime()
+        if getattr(sys, 'frozen', False):
+            self._script_path = Path(sys.executable)
+        else:
+            self._script_path = Path(__file__).resolve()
+        self._script_mtime = self._get_mtime()
     def _get_mtime(self):
         try: return self._script_path.stat().st_mtime
         except: return 0
@@ -578,10 +628,10 @@ class AutoUpdater:
                                      creationflags=(subprocess.CREATE_NEW_CONSOLE if platform.system()=="Windows" else 0))
                     time.sleep(0.3); os._exit(0)
                 else: os.execv(bat_path_or_exe, [bat_path_or_exe] + sys.argv[1:])
-            else: os.execv(sys.executable, [sys.executable] + sys.argv)
+            else: os.execv(sys.executable, [sys.executable] + sys.argv[1:])
         except: os._exit(1)
     def watch_script(self, interval_ms=3000, root=None, on_change=None):
-        if root is None: return
+        if root is None or getattr(sys, 'frozen', False): return
         def _check():
             try:
                 mt = self._get_mtime()
@@ -598,7 +648,7 @@ class AutoUpdater:
         except: pass
 
 # ══════════════════════════════════════════════════════
-#  UI HELPERS
+#  UI HELPERS — CRYSTAL EDITION
 # ══════════════════════════════════════════════════════
 def hex_to_rgb(h):
     h = h.lstrip('#')
@@ -611,7 +661,7 @@ def blend_color(c1, c2, t):
 def lerp_color(c1, c2, t): return blend_color(c1, c2, max(0,min(1,t)))
 
 def _draw_rounded_rect(canvas, x1, y1, x2, y2, r=8, **kw):
-    r = min(r, (x2-x1)//2, (y2-y1)//2)
+    r = min(r, max(1,(x2-x1)//2), max(1,(y2-y1)//2))
     points = [x1+r,y1, x2-r,y1, x2,y1, x2,y1+r, x2,y2-r, x2,y2,
               x2-r,y2, x1+r,y2, x1,y2, x1,y2-r, x1,y1+r, x1,y1]
     return canvas.create_polygon(points, smooth=True, **kw)
@@ -644,18 +694,19 @@ def make_pill_button(parent, text, command=None, bg=BG_ITEM, fg=AC_MAIN,
         w.bind("<Enter>", on_enter); w.bind("<Leave>", on_leave); w.bind("<Button-1>", on_click)
     outer._labels = labels; outer._bg = bg; outer._fg = fg
     outer._hover_bg = hover_bg; outer._hover_fg = hover_fg
-    outer._inner = inner; outer._row = row; outer._accent_bar = None
+    outer._inner = inner; outer._row = row
     return outer
 
 def make_action_button(parent, text, command=None, style="primary",
                         font=("Segoe UI", 10, "bold"), px=20, py=10, icon=None, **kw):
     styles = {
-        "primary":  (AC_MAIN,   BG_VOID, "#00e0ff", "#001020"),
-        "danger":   (AC_RED,    BG_VOID, "#ff6688", "#1a0010"),
-        "success":  (AC_GREEN,  BG_VOID, "#44ffaa", "#001a10"),
-        "warning":  (AC_ORANGE, BG_VOID, "#ffaa55", "#1a0800"),
-        "ghost":    (BG_ITEM,   TX_MID,  BG_HOVER,  TX_WHITE),
-        "admin":    (ADM_ACC,   BG_VOID, "#ff44ee", "#100018"),
+        "primary":  (AC_MAIN,    BG_VOID,   "#44e8ff", "#001828"),
+        "danger":   (AC_RED,     BG_VOID,   "#ff7799", "#1a0010"),
+        "success":  (AC_GREEN,   BG_VOID,   "#44ffaa", "#001a10"),
+        "warning":  (AC_ORANGE,  BG_VOID,   "#ffaa55", "#1a0800"),
+        "ghost":    (BG_ITEM,    TX_MID,    BG_HOVER,  TX_WHITE),
+        "admin":    (ADM_ACC,    BG_VOID,   "#ff55ff", "#150018"),
+        "crystal":  (AC_CYAN,    BG_VOID,   "#88ffff", "#001a20"),
     }
     norm_bg, norm_fg, h_bg, h_fg = styles.get(style, styles["ghost"])
     btn = tk.Frame(parent, bg=norm_bg, cursor="hand2", **kw)
@@ -681,50 +732,86 @@ def make_action_button(parent, text, command=None, style="primary",
     btn._norm_bg = norm_bg; btn._norm_fg = norm_fg; btn._h_bg = h_bg; btn._h_fg = h_fg
     return btn
 
-class GlowButton(tk.Frame):
+class CrystalButton(tk.Frame):
+    """Улучшенная кнопка ИГРАТЬ с crystal-эффектом."""
     def __init__(self, parent, text, command=None,
                  bg=BG_CARD, fg=AC_MAIN, glow=AC_MAIN, font=("Segoe UI",14,"bold"),
-                 height=60, **kw):
+                 height=72, **kw):
         super().__init__(parent, bg=bg, cursor="hand2", **kw)
         self._bg=bg; self._fg=fg; self._glow=glow; self._phase=0.0; self._running=True
-        self._hover=False; self._command=command
+        self._hover=False; self._command=command; self._pressing=False
         self._canvas = tk.Canvas(self, bg=bg, highlightthickness=0, height=height)
         self._canvas.pack(fill="both", expand=True)
         self._text = text; self._font = font; self._height = height
         self._canvas.bind("<Configure>", self._redraw)
         self._canvas.bind("<Enter>", self._on_enter)
         self._canvas.bind("<Leave>", self._on_leave)
-        self._canvas.bind("<Button-1>", self._on_click)
+        self._canvas.bind("<Button-1>", self._on_press)
+        self._canvas.bind("<ButtonRelease-1>", self._on_release)
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
-        self.bind("<Button-1>", self._on_click)
+        self.bind("<Button-1>", self._on_press)
+        self.bind("<ButtonRelease-1>", self._on_release)
         self._tick()
     def _on_enter(self, e): self._hover = True
-    def _on_leave(self, e): self._hover = False
-    def _on_click(self, e):
-        if self._command: self.after(100, self._command)
+    def _on_leave(self, e): self._hover = False; self._pressing = False
+    def _on_press(self, e): self._pressing = True
+    def _on_release(self, e):
+        if self._pressing and self._command:
+            self.after(100, self._command)
+        self._pressing = False
     def _redraw(self, e=None):
         W = self._canvas.winfo_width() or 400; H = self._height
         c = self._canvas; c.delete("all")
         t = (math.sin(self._phase) + 1) / 2
-        intensity = 0.6 + t * 0.4 + (0.3 if self._hover else 0)
-        bg2 = lerp_color(self._bg, "#101828", 0.8)
-        _draw_rounded_rect(c, 0, 0, W, H, r=14, fill=bg2, outline="")
-        glow_r, glow_g, glow_b = hex_to_rgb(self._glow)
-        for i in range(6, 0, -1):
-            col = f"#{min(255,glow_r*i//10):02x}{min(255,glow_g*i//10):02x}{min(255,glow_b*i//10):02x}"
-            _draw_rounded_rect(c, i*2, i, W-i*2, H-i, r=14-i, outline=col, fill="")
-        border_col = lerp_color(AC_DIM, self._glow, intensity * 0.7)
-        _draw_rounded_rect(c, 2, 2, W-2, H-2, r=12, outline=border_col, fill="", width=2)
-        text_col = lerp_color(self._fg, TX_WHITE, min(1, intensity * 0.8))
-        c.create_text(W//2, H//2+1, text=self._text, fill=lerp_color("#001020","#002040",0.5),
+        base_i = 0.55 + t * 0.35
+        hover_boost = 0.35 if self._hover else 0
+        press_boost = -0.15 if self._pressing else 0
+        intensity = base_i + hover_boost + press_boost
+        
+        # Фон с градиентом
+        bg2 = lerp_color(self._bg, "#060e1c", 0.9)
+        _draw_rounded_rect(c, 0, 0, W, H, r=16, fill=bg2, outline="")
+        
+        # Внешнее свечение (несколько слоёв)
+        gr, gg, gb = hex_to_rgb(self._glow)
+        glow_layers = [(8, 0.04), (6, 0.08), (4, 0.14), (2, 0.22)]
+        for dist, alpha in glow_layers:
+            col = f"#{min(255,int(gr*alpha*intensity*3)):02x}{min(255,int(gg*alpha*intensity*3)):02x}{min(255,int(gb*alpha*intensity*3)):02x}"
+            try: _draw_rounded_rect(c, dist, dist//2, W-dist, H-dist//2, r=16-dist//2, outline=col, fill="")
+            except: pass
+        
+        # Основной бордер с пульсацией
+        border_col = lerp_color(AC_DIM, self._glow, min(1.0, intensity * 0.85))
+        _draw_rounded_rect(c, 2, 2, W-2, H-2, r=14, outline=border_col, fill="", width=2)
+        
+        # Верхний блик (crystal-эффект)
+        shimmer_alpha = 0.08 + t * 0.12 + (0.15 if self._hover else 0)
+        shimmer_col = lerp_color(self._glow, TX_WHITE, 0.6)
+        r_val, g_val, b_val = hex_to_rgb(shimmer_col)
+        sc = f"#{min(255,int(r_val*shimmer_alpha)):02x}{min(255,int(g_val*shimmer_alpha)):02x}{min(255,int(b_val*shimmer_alpha)):02x}"
+        try: _draw_rounded_rect(c, 3, 3, W-3, H//2, r=13, fill=sc, outline="")
+        except: pass
+        
+        # Текст с тенью
+        text_col = lerp_color(self._fg, TX_WHITE, min(1, intensity * 0.7))
+        c.create_text(W//2, H//2+2, text=self._text, fill=lerp_color("#000810","#001828",0.5),
                       font=self._font, anchor="center")
         c.create_text(W//2, H//2, text=self._text, fill=text_col, font=self._font, anchor="center")
+        
+        # Маленький декоративный орнамент
+        if self._hover:
+            dot_col = lerp_color(self._glow, TX_WHITE, 0.7)
+            for dx in [-80, 80]:
+                try:
+                    c.create_oval(W//2+dx-3, H//2-3, W//2+dx+3, H//2+3, fill=dot_col, outline="")
+                except: pass
+
     def _tick(self):
         if not self._running: return
         try:
-            self._phase += 0.04; self._redraw()
-            self.after(33, self._tick)
+            self._phase += 0.035; self._redraw()
+            self.after(30, self._tick)
         except: pass
     def destroy(self): self._running = False; super().destroy()
     def configure_state(self, enabled, text=None):
@@ -733,118 +820,159 @@ class GlowButton(tk.Frame):
         self._glow = AC_MAIN if enabled else BG_PANEL
         self.configure(cursor="hand2" if enabled else "arrow")
 
-class NeonProgressBar(tk.Frame):
-    def __init__(self, parent, height=8, bg=BG_ITEM, fg=AC_MAIN, **kw):
-        super().__init__(parent, bg=bg, height=height+4, **kw)
+class CrystalProgressBar(tk.Frame):
+    """Улучшенный прогресс-бар с crystal и shimmer эффектами."""
+    def __init__(self, parent, height=10, bg=BG_ITEM, fg=AC_MAIN, **kw):
+        super().__init__(parent, bg=bg, height=height+6, **kw)
         self._bg=bg; self._fg=fg; self._val=0.0; self._running=True; self._glow_phase=0.0
-        self._canvas = tk.Canvas(self, bg=bg, highlightthickness=0, height=height+4)
+        self._canvas = tk.Canvas(self, bg=bg, highlightthickness=0, height=height+6)
         self._canvas.pack(fill="both", expand=True)
         self._canvas.bind("<Configure>", self._redraw)
         self._tick()
     def set(self, val):
         self._val = max(0.0, min(1.0, val)); self._redraw()
     def _redraw(self, e=None):
-        W = self._canvas.winfo_width() or 400; H = self._canvas.winfo_height() or 12
+        W = self._canvas.winfo_width() or 400; H = self._canvas.winfo_height() or 16
         c = self._canvas; c.delete("all")
-        _draw_rounded_rect(c, 0, 0, W, H, r=H//2, fill=BG_VOID, outline=BD_DARK)
+        # Трек
+        _draw_rounded_rect(c, 0, 2, W, H-2, r=(H-4)//2, fill=lerp_color(BG_VOID, BG_ITEM, 0.8), outline=BD_DARK)
         if self._val <= 0: return
         fw = max(H, int((W-4) * self._val))
         glow_t = (math.sin(self._glow_phase) + 1) / 2
-        fg = self._fg
-        if self._val < 0.33: fg = lerp_color(AC_GLOW, AC_MAIN, self._val * 3)
+        
+        # Цвет по прогрессу
+        if self._val < 0.33: fg = lerp_color("#0050a0", AC_MAIN, self._val * 3)
         elif self._val < 0.66: fg = AC_MAIN
         else: fg = lerp_color(AC_MAIN, AC_MINT, (self._val - 0.66) * 3)
-        _draw_rounded_rect(c, 2, 2, fw+2, H-2, r=(H-4)//2, fill=fg, outline="")
-        shimmer_x = int(fw * 0.3 + fw * 0.4 * glow_t) + 2
-        _draw_rounded_rect(c, 2, 2, shimmer_x, H//2, r=(H-4)//2,
-                           fill=lerp_color(fg, TX_WHITE, 0.3), outline="")
+        
+        # Основной бар
+        _draw_rounded_rect(c, 2, 3, fw+2, H-3, r=(H-6)//2, fill=fg, outline="")
+        
+        # Верхний блик
+        hl = lerp_color(fg, TX_WHITE, 0.45)
+        _draw_rounded_rect(c, 3, 3, fw+1, H//2, r=(H-6)//2, fill=hl, outline="")
+        
+        # Скользящий shimmer
+        if fw > 20:
+            sm_x = int(4 + (fw - 20) * ((math.sin(self._glow_phase * 0.7) + 1) / 2))
+            sm_w = min(60, fw // 3)
+            try: _draw_rounded_rect(c, sm_x, 3, min(sm_x+sm_w, fw+1), H//2+1,
+                                     r=3, fill=lerp_color(fg, TX_WHITE, 0.55), outline="")
+            except: pass
+        
+        # Правый гlow-кончик
+        edge_col = lerp_color(fg, TX_WHITE, 0.6 + glow_t * 0.3)
+        try: c.create_oval(fw-4, 2, fw+6, H-2, fill=edge_col, outline="")
+        except: pass
+
     def _tick(self):
         if not self._running: return
         try:
-            self._glow_phase += 0.06; self._redraw()
-            self.after(33, self._tick)
+            self._glow_phase += 0.055; self._redraw()
+            self.after(28, self._tick)
         except: pass
     def destroy(self): self._running = False; super().destroy()
 
-class StarfieldCanvas(tk.Canvas):
+class CrystalStarfield(tk.Canvas):
+    """Улучшенный фоновый холст со звёздами и частицами."""
     def __init__(self, parent, **kw):
         super().__init__(parent, bg=BG_VOID, highlightthickness=0, **kw)
-        self._stars = []; self._bubbles = []; self._running = True
-        self._init_stars(); self._init_bubbles(); self._ripples = []
+        self._stars = []; self._particles = []; self._nebulae = []
+        self._running = True; self._ripples = []
+        self._init_stars(); self._init_particles(); self._init_nebulae()
         self.bind("<Button-1>", self._on_click)
         self._tick()
     def _init_stars(self):
         self._stars = []
-        for _ in range(80):
+        for _ in range(100):
             self._stars.append({
                 "x": random.random(), "y": random.random(),
-                "r": random.uniform(0.5, 2.2),
+                "r": random.uniform(0.4, 2.0),
                 "phase": random.uniform(0, math.pi*2),
-                "speed": random.uniform(0.008, 0.025),
-                "col": random.choice(["#1a3050","#0a2040","#163070","#0d2860"])
+                "speed": random.uniform(0.007, 0.022),
+                "col": random.choice(["#0f2040","#081830","#122860","#0a2050"])
             })
-    def _init_bubbles(self):
-        self._bubbles = []
-        for _ in range(28):
-            r = random.uniform(4, 22)
-            self._bubbles.append({
+    def _init_particles(self):
+        self._particles = []
+        for _ in range(22):
+            r = random.uniform(3, 18)
+            self._particles.append({
                 "x": random.random(), "y": random.uniform(0.05, 1.1),
-                "r": r, "br": r, "vy": random.uniform(0.0003, 0.0009),
-                "vx": random.uniform(-0.0001, 0.0001),
+                "r": r, "br": r, "vy": random.uniform(0.0002, 0.0008),
+                "vx": random.uniform(-0.00008, 0.00008),
                 "col": random.choice(BUBBLE_COLS),
-                "phase": random.uniform(0, math.pi*2), "ps": random.uniform(0.01, 0.035),
-                "wobble": random.uniform(0, math.pi*2), "ws": random.uniform(0.02, 0.05),
+                "phase": random.uniform(0, math.pi*2), "ps": random.uniform(0.01, 0.03),
+                "wobble": random.uniform(0, math.pi*2), "ws": random.uniform(0.018, 0.04),
+                "opacity": random.uniform(0.3, 0.8),
                 "ids": []
+            })
+    def _init_nebulae(self):
+        """Туманности на фоне."""
+        self._nebulae = []
+        for _ in range(4):
+            self._nebulae.append({
+                "x": random.uniform(0.1, 0.9), "y": random.uniform(0.1, 0.9),
+                "rx": random.uniform(0.15, 0.35), "ry": random.uniform(0.08, 0.2),
+                "col": random.choice([AC_MAIN, AC_PURPLE, AC_CYAN]),
+                "phase": random.uniform(0, math.pi*2),
+                "speed": random.uniform(0.003, 0.008)
             })
     def _on_click(self, e):
         W = self.winfo_width() or 400; H = self.winfo_height() or 400
-        self._ripples.append({"x": e.x/W, "y": e.y/H, "r": 0, "max_r": 0.2, "a": 1.0, "ids": []})
-    def _draw_bubble(self, x, y, r, col):
+        self._ripples.append({"x": e.x/W, "y": e.y/H, "r": 0, "max_r": 0.22, "a": 1.0, "ids": []})
+    def _draw_particle(self, x, y, r, col):
         ids = []
-        for gsc, st in [(4.0,"gray12"), (2.5,"gray25"), (1.6,"gray50")]:
-            gr = r * gsc
-            ids.append(self.create_oval(x-gr, y-gr, x+gr, y+gr, outline=col, fill="", width=1, stipple=st))
+        # Слои свечения
+        for scale, stipple in [(3.5,"gray12"), (2.2,"gray25"), (1.4,"gray50")]:
+            gr = r * scale
+            ids.append(self.create_oval(x-gr, y-gr, x+gr, y+gr, outline=col, fill="", width=1, stipple=stipple))
+        # Основной шар
         ids.append(self.create_oval(x-r, y-r, x+r, y+r, outline=col, fill="", width=1))
+        # Залитый (прозрачный)
         ids.append(self.create_oval(x-r+1, y-r+1, x+r-1, y+r-1, outline="", fill=col, stipple="gray12"))
-        hr = r*0.38; hx = x-r*0.28; hy = y-r*0.28
-        ids.append(self.create_oval(hx-hr, hy-hr*0.55, hx+hr, hy+hr*0.55, outline="", fill="white", stipple="gray50"))
+        # Блик
+        hr = r*0.35; hx = x-r*0.25; hy = y-r*0.25
+        ids.append(self.create_oval(hx-hr, hy-hr*0.5, hx+hr, hy+hr*0.5, outline="", fill="white", stipple="gray50"))
         return ids
     def _tick(self):
         if not self._running: return
         try:
             W = self.winfo_width() or 400; H = self.winfo_height() or 400
+            # Звёзды
             for s in self._stars:
                 s["phase"] += s["speed"]
                 t = (math.sin(s["phase"]) + 1) / 2
-                col = lerp_color(s["col"], "#2a4878", t)
+                col = lerp_color(s["col"], "#1e3860", t)
                 x = s["x"]*W; y = s["y"]*H; r = s["r"]
                 try: self.itemconfig(s.get("id"), fill=col, outline=col)
                 except: s["id"] = self.create_oval(x-r, y-r, x+r, y+r, fill=col, outline="")
-            for b in self._bubbles:
-                for i in b["ids"]:
+            # Частицы
+            for p in self._particles:
+                for i in p["ids"]:
                     try: self.delete(i)
                     except: pass
-                b["ids"] = []
-                b["y"] -= b["vy"]; b["x"] += b["vx"]
-                b["phase"] += b["ps"]; b["wobble"] += b["ws"]
-                if b["y"] < -0.1: b["y"] = 1.1; b["x"] = random.random()
-                if not -0.1 < b["x"] < 1.1: b["vx"] = -b["vx"]
-                wobble = math.sin(b["wobble"]) * 0.07
-                r = max(2, b["br"] + math.sin(b["phase"]) * 2.5)
-                x = b["x"]*W + wobble*25; y = b["y"]*H
-                b["ids"] = self._draw_bubble(x, y, r, b["col"])
+                p["ids"] = []
+                p["y"] -= p["vy"]; p["x"] += p["vx"]
+                p["phase"] += p["ps"]; p["wobble"] += p["ws"]
+                if p["y"] < -0.1: p["y"] = 1.1; p["x"] = random.random()
+                if not -0.1 < p["x"] < 1.1: p["vx"] = -p["vx"]
+                wobble = math.sin(p["wobble"]) * 0.06
+                r = max(2, p["br"] + math.sin(p["phase"]) * 2)
+                x = p["x"]*W + wobble*22; y = p["y"]*H
+                p["ids"] = self._draw_particle(x, y, r, p["col"])
+            # Ripples
             for rip in list(self._ripples):
                 for i in rip["ids"]:
                     try: self.delete(i)
                     except: pass
                 rip["ids"] = []
-                rip["r"] += 0.007; rip["a"] -= 0.025
+                rip["r"] += 0.008; rip["a"] -= 0.022
                 if rip["a"] <= 0: self._ripples.remove(rip); continue
                 rx = rip["x"]*W; ry = rip["y"]*H; rr = rip["r"]*min(W,H)
-                col = lerp_color(BG_VOID, AC_MAIN, rip["a"] * 0.6)
+                col = lerp_color(BG_VOID, AC_MAIN, rip["a"] * 0.5)
                 rip["ids"] = [self.create_oval(rx-rr, ry-rr, rx+rr, ry+rr,
                                                outline=col, fill="", width=2, stipple="gray50")]
-            self.after(20, self._tick)
+            self.after(18, self._tick)
         except: pass
     def stop(self): self._running = False
 
@@ -853,11 +981,11 @@ class ToastManager:
         self.root = root; self._toasts = []
     def show(self, message, kind="info", duration=3500):
         styles = {
-            "info":    (BG_PANEL, BD_MID,    AC_MAIN,  "◈"),
-            "success": (BG_PANEL, "#103820",  AC_GREEN, "✓"),
-            "warning": (BG_PANEL, "#302000",  AC_ORANGE,"⚠"),
-            "error":   (BG_PANEL, "#301020",  AC_RED,   "✕"),
-            "update":  (BG_PANEL, "#200830",  AC_PURPLE,"⬆"),
+            "info":    (BG_PANEL, BD_MID,            AC_MAIN,   "◈"),
+            "success": (BG_PANEL, "#0a2818",          AC_GREEN,  "✓"),
+            "warning": (BG_PANEL, "#281800",          AC_ORANGE, "⚠"),
+            "error":   (BG_PANEL, "#280810",          AC_RED,    "✕"),
+            "update":  (BG_PANEL, "#180828",          AC_PURPLE, "⬆"),
         }
         bg, brd, acc, icon = styles.get(kind, styles["info"])
         self._toasts.append(self._create(message, bg, brd, acc, icon, duration))
@@ -867,15 +995,15 @@ class ToastManager:
         frame = tk.Frame(self.root, bg=brd, padx=1, pady=1)
         inner = tk.Frame(frame, bg=bg); inner.pack(fill="both")
         tk.Frame(inner, bg=acc, height=2).pack(fill="x")
-        row = tk.Frame(inner, bg=bg); row.pack(fill="x", padx=12, pady=9)
+        row = tk.Frame(inner, bg=bg); row.pack(fill="x", padx=12, pady=10)
         tk.Label(row, text=icon, bg=bg, fg=acc, font=("Segoe UI",13,"bold")).pack(side="left", padx=(0,8))
         tk.Label(row, text=message, bg=bg, fg=TX_MAIN, font=("Segoe UI",9),
                  wraplength=220, justify="left").pack(side="left")
         tk.Button(row, text="×", bg=bg, fg=TX_DIM, relief="flat", bd=0,
                   cursor="hand2", font=("Segoe UI",10,"bold"),
                   command=lambda: self._dismiss(frame)).pack(side="right")
-        frame.place(x=W+10, y=0, width=270)
-        frame._target_x = W - 286
+        frame.place(x=W+10, y=0, width=275)
+        frame._target_x = W - 291
         frame.after(20, lambda: self._slide_in(frame, W+10, duration))
         return frame
     def _slide_in(self, frame, start_x, duration, step=0):
@@ -921,7 +1049,7 @@ def make_neon_entry(parent, textvariable, show="", placeholder="", width=None,
     kw = dict(textvariable=textvariable, bg=bg, fg=fg, insertbackground=accent,
               relief="flat", font=("Segoe UI", 11), bd=6, show=show)
     if width: kw["width"] = width
-    e = tk.Entry(row, **kw); e.pack(side="left", fill="x", expand=True, ipady=7)
+    e = tk.Entry(row, **kw); e.pack(side="left", fill="x", expand=True, ipady=8)
     accent_line = tk.Frame(inner, bg=BD_DARK, height=2); accent_line.pack(fill="x", side="bottom")
     _hp = [False]
     if placeholder:
@@ -944,32 +1072,32 @@ def make_neon_entry(parent, textvariable, show="", placeholder="", width=None,
     return outer
 
 def make_badge(parent, text, color=AC_MAIN, bg=None):
-    _bg = bg or lerp_color(BG_VOID, color, 0.15)
-    _brd = lerp_color(BG_VOID, color, 0.4)
+    _bg = bg or lerp_color(BG_VOID, color, 0.12)
+    _brd = lerp_color(BG_VOID, color, 0.5)
     f = tk.Frame(parent, bg=_brd, padx=1, pady=1)
     inner = tk.Frame(f, bg=_bg); inner.pack()
     tk.Label(inner, text=text, bg=_bg, fg=color, font=("Segoe UI", 8, "bold"),
-             padx=8, pady=3).pack()
+             padx=9, pady=4).pack()
     return f
 
 def make_stat_card(parent, icon, title, value, color=AC_MAIN):
-    _bg = lerp_color(BG_VOID, color, 0.08)
+    _bg = lerp_color(BG_VOID, color, 0.07)
     outer = tk.Frame(parent, bg=color, padx=1, pady=1)
     inner = tk.Frame(outer, bg=_bg); inner.pack(fill="both", expand=True)
     tk.Frame(inner, bg=color, height=2).pack(fill="x")
     content = tk.Frame(inner, bg=_bg); content.pack(fill="both", padx=12, pady=10)
     top = tk.Frame(content, bg=_bg); top.pack(fill="x")
-    tk.Label(top, text=icon, bg=_bg, fg=color, font=("Segoe UI", 16)).pack(side="left", padx=(0, 8))
-    tk.Label(top, text=title, bg=_bg, fg=TX_DIM, font=("Segoe UI", 9)).pack(side="left", pady=4)
-    val_lbl = tk.Label(content, text=value, bg=_bg, fg=color, font=("Segoe UI", 22, "bold"))
+    tk.Label(top, text=icon, bg=_bg, fg=color, font=("Segoe UI", 15)).pack(side="left", padx=(0, 7))
+    tk.Label(top, text=title, bg=_bg, fg=TX_DIM, font=("Segoe UI", 8)).pack(side="left", pady=4)
+    val_lbl = tk.Label(content, text=value, bg=_bg, fg=color, font=("Segoe UI", 20, "bold"))
     val_lbl.pack(anchor="w", pady=(2, 0))
     return outer, val_lbl
 
 # ══════════════════════════════════════════════════════
-#  WING DRAWING HELPERS
+#  WING DRAWING
 # ══════════════════════════════════════════════════════
-def draw_wings(canvas, cx, cy, s, fill_col="#d8f0ff", outline_col="#60b8e0",
-               outline_shadow="#003366"):
+def draw_wings(canvas, cx, cy, s, fill_col="#c8e8ff", outline_col="#4888cc",
+               outline_shadow="#002255"):
     def feather(ox, oy, ang_deg, length, width):
         angle = math.radians(ang_deg); perp = angle + math.pi/2
         tip_x = ox + math.cos(angle)*length; tip_y = oy - math.sin(angle)*length
@@ -983,19 +1111,16 @@ def draw_wings(canvas, cx, cy, s, fill_col="#d8f0ff", outline_col="#60b8e0",
         mry = oy - math.sin(angle)*length*mf + math.sin(perp)*hw*.9
         canvas.create_polygon([lx,ly,mlx,mly,tip_x,tip_y,mrx,mry,rx,ry,ox,oy],
                               smooth=True, fill=fill_col, outline=outline_col, width=1)
-
     lf = [(-.05,.04,115,.55,.22),(-.12,.01,128,.65,.24),(-.20,-.04,142,.72,.25),
           (-.28,-.10,155,.88,.27),(-.35,-.18,168,.98,.28),(-.38,-.28,180,1.1,.28),
           (-.36,-.38,193,1.05,.26),(-.30,-.46,207,.92,.24),(-.20,-.52,222,.78,.21),(-.08,-.54,238,.62,.18)]
     rf = [(.05,.04,65,.55,.22),(.12,.01,52,.65,.24),(.20,-.04,38,.72,.25),
           (.28,-.10,25,.88,.27),(.35,-.18,12,.98,.28),(.38,-.28,0,1.1,.28),
           (.36,-.38,-13,1.05,.26),(.30,-.46,-27,.92,.24),(.20,-.52,-42,.78,.21),(.08,-.54,-58,.62,.18)]
-
     for feathers in (lf, rf):
         for dx, dy, ang, ln, wd in feathers:
             feather(cx+dx*s, cy+dy*s, ang, ln*s*1.35, wd*s*1.35)
-
-    for rm, col in [(3.2, outline_shadow),(2.2, "#005588"),(1.5, "#0077aa")]:
+    for rm, col in [(3.2, outline_shadow),(2.2, "#004477"),(1.5, "#0088bb")]:
         r = s*.13*rm
         canvas.create_oval(cx-r, cy-r, cx+r, cy+r, outline=col, fill="", width=1)
     r = s*.13
@@ -1004,14 +1129,14 @@ def draw_wings(canvas, cx, cy, s, fill_col="#d8f0ff", outline_col="#60b8e0",
     canvas.create_oval(cx-r2, cy-r2, cx+r2, cy+r2, fill=TX_WHITE, outline="")
 
 # ══════════════════════════════════════════════════════
-#  AUTH SCREEN
+#  AUTH SCREEN — Crystal Edition
 # ══════════════════════════════════════════════════════
 class AuthScreen(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Angels Launcher — Вход")
         self.configure(bg=BG_VOID)
-        self.geometry("540x680"); self.resizable(False, False)
+        self.geometry("560x700"); self.resizable(False, False)
         self._activated = False; self._mode = "register"
         self._build(); self._apply_icon()
 
@@ -1023,62 +1148,64 @@ class AuthScreen(tk.Tk):
 
     def _make_icon(self, size=32):
         try:
-            W = H = size; pixels = [[(0,4,12)]*W for _ in range(H)]
+            W = H = size; pixels = [[(0,5,14)]*W for _ in range(H)]
             cx, cy = W//2, H//2
             def dp(x,y,r,g,b,a=1.0):
                 if 0<=x<W and 0<=y<H:
                     br,bg_,bb = pixels[y][x]
                     pixels[y][x] = (int(br+(r-br)*a), int(bg_+(g-bg_)*a), int(bb+(b-bb)*a))
-            def dl(x0,y0,x1,y1,r,g,b,a=0.9):
-                dx,dy=abs(x1-x0),abs(y1-y0); sx=1 if x0<x1 else -1; sy=1 if y0<y1 else -1; err=dx-dy
-                while True:
-                    dp(x0,y0,r,g,b,a)
-                    if x0==x1 and y0==y1: break
-                    e2=2*err
-                    if e2>-dy: err-=dy; x0+=sx
-                    if e2<dx: err+=dx; y0+=sy
             sc=size/32.0
-            for r in range(int(4*sc),0,-1):
-                a=0.4+0.6*(1-r/(4*sc))
-                for ang in range(0,360,4):
+            for r in range(int(5*sc),0,-1):
+                a=0.35+0.65*(1-r/(5*sc))
+                for ang in range(0,360,3):
                     rad=math.radians(ang)
-                    dp(int(cx+math.cos(rad)*r), int(cy+math.sin(rad)*r), 0, 200, 255, a)
+                    dp(int(cx+math.cos(rad)*r), int(cy+math.sin(rad)*r), 0, 212, 255, a)
             ppm3=b"P3\n"+f"{W} {H}\n255\n".encode()
             ppm3+=b"\n".join(b" ".join(f"{r} {g} {b}".encode() for r,g,b in row) for row in pixels)+b"\n"
             return tk.PhotoImage(data=ppm3)
         except: return None
 
     def _build(self):
-        self._bg = StarfieldCanvas(self)
-        self._bg.place(x=0, y=0, width=540, height=680)
+        self._bg = CrystalStarfield(self)
+        self._bg.place(x=0, y=0, width=560, height=700)
 
+        # Основная карточка
         card = tk.Frame(self, bg=BD_MID, padx=1, pady=1)
-        card.place(x=40, y=100, width=460, height=560)
+        card.place(x=40, y=80, width=480, height=600)
         card_inner = tk.Frame(card, bg=BG_CARD); card_inner.pack(fill="both", expand=True)
-        tk.Frame(card_inner, bg=AC_MAIN, height=3).pack(fill="x")
+        
+        # Верхняя полоска — цветной градиент
+        top_line = tk.Frame(card_inner, bg=AC_MAIN, height=3)
+        top_line.pack(fill="x")
 
+        # Шапка
         hdr = tk.Frame(card_inner, bg=BG_PANEL); hdr.pack(fill="x")
         tk.Frame(hdr, bg=BD_DARK, height=1).pack(fill="x", side="bottom")
 
-        wc = tk.Canvas(hdr, bg=BG_PANEL, width=50, height=50, highlightthickness=0)
-        wc.pack(side="left", padx=(16, 8), pady=10)
-        draw_wings(wc, 25, 28, 18)
+        wc = tk.Canvas(hdr, bg=BG_PANEL, width=56, height=56, highlightthickness=0)
+        wc.pack(side="left", padx=(18, 10), pady=12)
+        draw_wings(wc, 28, 32, 19)
 
-        tf = tk.Frame(hdr, bg=BG_PANEL); tf.pack(side="left", pady=12)
+        tf = tk.Frame(hdr, bg=BG_PANEL); tf.pack(side="left", pady=14)
         row_t = tk.Frame(tf, bg=BG_PANEL); row_t.pack(anchor="w")
         tk.Label(row_t, text="ANGELS", bg=BG_PANEL, fg=TX_WHITE,
-                 font=("Segoe UI", 18, "bold")).pack(side="left")
+                 font=("Segoe UI", 20, "bold")).pack(side="left")
         tk.Label(row_t, text=" LAUNCHER", bg=BG_PANEL, fg=AC_MAIN,
-                 font=("Segoe UI", 18, "bold")).pack(side="left")
-        tk.Label(tf, text=f"v{LAUNCHER_VER}  ·  Minecraft {MC_VERSION}",
+                 font=("Segoe UI", 20, "bold")).pack(side="left")
+        tk.Label(tf, text=f"v{LAUNCHER_VER}  ·  Crystal Edition  ·  MC {MC_VERSION}",
                  bg=BG_PANEL, fg=TX_DIM, font=("Segoe UI", 9)).pack(anchor="w")
+        
+        # DLL Fix badge
+        fix_f = tk.Frame(hdr, bg=BG_PANEL); fix_f.pack(side="right", padx=14, pady=14)
+        make_badge(fix_f, "🛡 DLL Fixed", AC_GREEN).pack()
 
+        # Табы
         tab_row = tk.Frame(card_inner, bg=BG_CARD); tab_row.pack(fill="x")
         self._tab_reg = tk.Label(tab_row, text="Регистрация", bg=BG_CARD, fg=AC_MAIN,
-                                  font=("Segoe UI", 11, "bold"), cursor="hand2", padx=20, pady=12)
+                                  font=("Segoe UI", 11, "bold"), cursor="hand2", padx=22, pady=13)
         self._tab_reg.pack(side="left")
         self._tab_log = tk.Label(tab_row, text="Войти", bg=BG_CARD, fg=TX_DIM,
-                                  font=("Segoe UI", 11), cursor="hand2", padx=20, pady=12)
+                                  font=("Segoe UI", 11), cursor="hand2", padx=22, pady=13)
         self._tab_log.pack(side="left")
         self._tab_line = tk.Frame(tab_row, bg=AC_MAIN, height=2)
         tk.Frame(card_inner, bg=BD_DARK, height=1).pack(fill="x")
@@ -1089,7 +1216,7 @@ class AuthScreen(tk.Tk):
         self._build_log(self._log_f)
 
         self._status_lbl = tk.Label(card_inner, text="", bg=BG_CARD, fg=AC_RED,
-                                     font=("Segoe UI", 9), wraplength=420, justify="center", pady=6)
+                                     font=("Segoe UI", 9), wraplength=440, justify="center", pady=8)
         self._status_lbl.pack(fill="x", padx=16, side="bottom")
 
         self._tab_reg.bind("<Button-1>", lambda e: self._switch("register"))
@@ -1104,16 +1231,17 @@ class AuthScreen(tk.Tk):
             ("🔒", "Пароль",          "Придумай пароль",         True),
         ]
         for icon, label, ph, secret in entries_cfg:
-            block = tk.Frame(f, bg=BG_CARD); block.pack(fill="x", padx=20, pady=(12, 0))
+            block = tk.Frame(f, bg=BG_CARD); block.pack(fill="x", padx=22, pady=(14, 0))
             tk.Label(block, text=label, bg=BG_CARD, fg=TX_MID,
                      font=("Segoe UI", 9), anchor="w").pack(anchor="w", pady=(0, 4))
             var = tk.StringVar()
             entry_w = make_neon_entry(block, var, show="●" if secret else "", placeholder=ph, icon=icon)
             entry_w.pack(fill="x")
             self._reg_vars.append((var, entry_w))
-        tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", padx=20, pady=16)
-        make_action_button(f, "◈   АКТИВИРОВАТЬ И ВОЙТИ", command=self._do_reg, style="primary",
-                            font=("Segoe UI", 12, "bold"), px=24, py=14).pack(fill="x", padx=20, pady=(0, 10))
+        tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", padx=22, pady=18)
+        btn = make_action_button(f, "◈   АКТИВИРОВАТЬ И ВОЙТИ", command=self._do_reg, style="primary",
+                            font=("Segoe UI", 12, "bold"), px=24, py=14)
+        btn.pack(fill="x", padx=22, pady=(0, 12))
 
     def _build_log(self, f):
         self._log_vars = []
@@ -1122,16 +1250,16 @@ class AuthScreen(tk.Tk):
             ("🔒", "Пароль",  "Твой пароль",   True),
         ]
         for icon, label, ph, secret in entries_cfg:
-            block = tk.Frame(f, bg=BG_CARD); block.pack(fill="x", padx=20, pady=(16, 0))
+            block = tk.Frame(f, bg=BG_CARD); block.pack(fill="x", padx=22, pady=(18, 0))
             tk.Label(block, text=label, bg=BG_CARD, fg=TX_MID,
                      font=("Segoe UI", 9), anchor="w").pack(anchor="w", pady=(0, 4))
             var = tk.StringVar()
             entry_w = make_neon_entry(block, var, show="●" if secret else "", placeholder=ph, icon=icon)
             entry_w.pack(fill="x")
             self._log_vars.append((var, entry_w))
-        tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", padx=20, pady=18)
+        tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", padx=22, pady=20)
         make_action_button(f, "→   ВОЙТИ", command=self._do_login, style="primary",
-                            font=("Segoe UI", 12, "bold"), px=24, py=14).pack(fill="x", padx=20, pady=(0, 10))
+                            font=("Segoe UI", 12, "bold"), px=24, py=14).pack(fill="x", padx=22, pady=(0, 12))
 
     def _switch(self, mode):
         self._mode = mode
@@ -1179,17 +1307,17 @@ class AuthScreen(tk.Tk):
         self._activated = True; self._bg.stop(); self.destroy()
 
 # ══════════════════════════════════════════════════════
-#  MAIN LAUNCHER
+#  MAIN LAUNCHER — Crystal Edition
 # ══════════════════════════════════════════════════════
 class AngelsLauncher(tk.Tk):
     def __init__(self):
         super().__init__()
         user = get_current_user(); self._nick = user.get("nickname", "Angel")
         self._adm = is_admin(self._nick); self._user = user; self._logout_requested = False
-        self.title(f"{LAUNCHER_NAME}  ·  Minecraft {MC_VERSION}")
+        self.title(f"{LAUNCHER_NAME}  ·  Crystal Edition  ·  MC {MC_VERSION}")
         self.configure(bg=BG_VOID)
         sw = self.winfo_screenwidth(); sh = self.winfo_screenheight()
-        W, H = 1240, 780
+        W, H = 1260, 800
         self.geometry(f"{W}x{H}+{(sw-W)//2}+{(sh-H)//2}")
         self.minsize(1000, 680); self.resizable(True, True)
         self._mc_process = None; self._active_tab = "home"; self._fullscreen = False
@@ -1208,10 +1336,11 @@ class AngelsLauncher(tk.Tk):
         self._toast = ToastManager(self)
         self.bind("<F11>", self._toggle_fs)
         self.bind("<Escape>", lambda e: self._set_fs(False))
-        self._log(f"◈  Angels Launcher v{LAUNCHER_VER} — Привет, {self._nick}!", "accent")
+        self._log(f"◈  Angels Launcher v{LAUNCHER_VER} Crystal Edition — Привет, {self._nick}!", "accent")
+        self._log(f"   🛡 PyInstaller DLL Fix: активен", "accent")
         if self._adm: self._log(f"   ⚡ Администратор", "gold")
         self._log(f"   RAM: {TOTAL_RAM} ГБ  |  Выделено: {self.ram.get()} ГБ", "info")
-        self._log(f"   ◈ Пиратский режим АКТИВЕН — демо-режим отключён", "accent")
+        self._log(f"   ◈ Пиратский режим АКТИВЕН — Demo Mode ОТКЛЮЧЁН", "accent")
         self._check_sub_alert(); self._check_files()
         self._updater.watch_script(interval_ms=2000, root=self, on_change=self._on_script_changed)
         self.after(3000, self._bg_check_updates)
@@ -1232,14 +1361,13 @@ class AngelsLauncher(tk.Tk):
             if ok and info and self._updater.is_newer(info["version"]):
                 self._update_available = True; self._latest_update_info = info
                 self.after(0, self._show_update_badge)
-                self.after(0, lambda: self._toast.show(
-                    f"⬆ Доступно обновление v{info['version']}!", kind="update", duration=7000))
+                self.after(0, lambda: self._toast.show(f"⬆ Доступно v{info['version']}!", kind="update", duration=7000))
         self._updater.check_for_updates(_cb)
 
     def _show_update_badge(self):
         try:
             self._update_dot.configure(text="● ОБНОВЛЕНИЕ", fg=AC_GREEN)
-            self.title(f"{LAUNCHER_NAME}  ·  MC {MC_VERSION}  ·  [ОБНОВЛЕНИЕ!]")
+            self.title(f"{LAUNCHER_NAME}  ·  Crystal  ·  [ОБНОВЛЕНИЕ!]")
         except: pass
 
     def _on_script_changed(self):
@@ -1252,78 +1380,91 @@ class AngelsLauncher(tk.Tk):
         self._fullscreen = state; self.attributes("-fullscreen", state)
         if not state:
             sw = self.winfo_screenwidth(); sh = self.winfo_screenheight()
-            self.geometry(f"1240x780+{(sw-1240)//2}+{(sh-780)//2}")
+            self.geometry(f"1260x800+{(sw-1260)//2}+{(sh-800)//2}")
 
     # ──────────────────────────────────────────────────
     #  BUILD UI
     # ──────────────────────────────────────────────────
     def _build_ui(self):
-        self._bgc = StarfieldCanvas(self)
+        self._bgc = CrystalStarfield(self)
         self._bgc.place(x=0, y=0, relwidth=1, relheight=1)
         self._build_header()
         body = tk.Frame(self, bg=BG_VOID)
-        body.place(x=0, y=100, relwidth=1, relheight=1, height=-100)
+        body.place(x=0, y=108, relwidth=1, relheight=1, height=-108)
         self._build_sidebar(body)
         self._panels = {}
         right = tk.Frame(body, bg=BG_VOID)
         right.pack(fill="both", expand=True)
-        self._panels["home"]    = self._mk_home(right)
-        self._panels["profile"] = self._mk_profile(right)
-        self._panels["multi"]   = self._mk_multi(right)
-        self._panels["mods"]    = self._mk_mods(right)
-        self._panels["console"] = self._mk_console(right)
-        self._panels["updates"] = self._mk_updates(right)
+        self._panels["home"]     = self._mk_home(right)
+        self._panels["profile"]  = self._mk_profile(right)
+        self._panels["multi"]    = self._mk_multi(right)
+        self._panels["mods"]     = self._mk_mods(right)
+        self._panels["console"]  = self._mk_console(right)
+        self._panels["updates"]  = self._mk_updates(right)
         self._panels["settings"] = self._mk_settings(right)
         if self._adm: self._panels["admin"] = self._mk_admin(right)
         self._show("home")
 
     def _build_header(self):
-        hdr = tk.Frame(self, bg=BG_CARD, height=100)
+        hdr = tk.Frame(self, bg=BG_CARD, height=108)
         hdr.place(x=0, y=0, relwidth=1)
         hdr.pack_propagate(False)
+        
+        # Нижняя полоска с градиентом
         tk.Frame(hdr, bg=AC_MAIN, height=2).pack(side="bottom", fill="x")
-        inner = tk.Frame(hdr, bg=BG_CARD); inner.pack(fill="both", expand=True, padx=16)
+        tk.Frame(hdr, bg=BD_MID, height=1).pack(side="bottom", fill="x")
+        
+        inner = tk.Frame(hdr, bg=BG_CARD); inner.pack(fill="both", expand=True, padx=18)
 
-        wc = tk.Canvas(inner, bg=BG_CARD, width=60, height=60, highlightthickness=0)
-        wc.pack(side="left", pady=18, padx=(0, 8))
-        draw_wings(wc, 30, 34, 20)
+        wc = tk.Canvas(inner, bg=BG_CARD, width=68, height=68, highlightthickness=0)
+        wc.pack(side="left", pady=18, padx=(0, 10))
+        draw_wings(wc, 34, 38, 22)
 
-        tf = tk.Frame(inner, bg=BG_CARD); tf.pack(side="left", pady=20)
+        tf = tk.Frame(inner, bg=BG_CARD); tf.pack(side="left", pady=22)
         title_row = tk.Frame(tf, bg=BG_CARD); title_row.pack(anchor="w")
         tk.Label(title_row, text="ANGELS", bg=BG_CARD, fg=TX_WHITE,
-                 font=("Segoe UI", 20, "bold")).pack(side="left")
+                 font=("Segoe UI", 22, "bold")).pack(side="left")
         tk.Label(title_row, text=" LAUNCHER", bg=BG_CARD, fg=AC_MAIN,
-                 font=("Segoe UI", 20, "bold")).pack(side="left")
+                 font=("Segoe UI", 22, "bold")).pack(side="left")
         sub_row = tk.Frame(tf, bg=BG_CARD); sub_row.pack(anchor="w")
-        tk.Label(sub_row, text=f"MC {MC_VERSION}  ·  Forge {FORGE_VERSION}  ·  {MOD_NAME}  ·  🏴‍☠️ Pirate Mode",
+        tk.Label(sub_row, text=f"Crystal Edition  ·  MC {MC_VERSION}  ·  Forge {FORGE_VERSION}  ·  🏴‍☠️ Pirate Mode",
                  bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 9)).pack(side="left")
 
-        tk.Frame(inner, bg=BD_DARK, width=1).pack(side="left", fill="y", padx=20, pady=16)
+        tk.Frame(inner, bg=BD_DARK, width=1).pack(side="left", fill="y", padx=22, pady=18)
 
-        sf = tk.Frame(inner, bg=BG_CARD); sf.pack(side="left", pady=22)
+        # Системная инфо
+        sf = tk.Frame(inner, bg=BG_CARD); sf.pack(side="left", pady=24)
         tk.Label(sf, text=f"RAM: {TOTAL_RAM} ГБ", bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 8)).pack(anchor="w")
         dot_row = tk.Frame(sf, bg=BG_CARD); dot_row.pack(anchor="w")
-        self._dot = tk.Label(dot_row, text="●", bg=BG_CARD, fg=AC_GREEN, font=("Segoe UI", 9))
+        self._dot = tk.Label(dot_row, text="●", bg=BG_CARD, fg=AC_GREEN, font=("Segoe UI", 10))
         self._dot.pack(side="left")
         tk.Label(dot_row, text=" ГОТОВ", bg=BG_CARD, fg=AC_MINT, font=("Segoe UI", 8, "bold")).pack(side="left")
         self._update_dot = tk.Label(sf, text="", bg=BG_CARD, fg=AC_GREEN, font=("Segoe UI", 8))
         self._update_dot.pack(anchor="w")
+        
+        # DLL Fix статус
+        dll_row = tk.Frame(sf, bg=BG_CARD); dll_row.pack(anchor="w", pady=(2, 0))
+        tk.Label(dll_row, text="🛡", bg=BG_CARD, fg=AC_GREEN, font=("Segoe UI", 8)).pack(side="left")
+        tk.Label(dll_row, text=" DLL Fix", bg=BG_CARD, fg=lerp_color(BG_VOID, AC_GREEN, 0.6),
+                 font=("Segoe UI", 8)).pack(side="left")
+        
         self._pulse_dot()
 
-        rf = tk.Frame(inner, bg=BG_CARD); rf.pack(side="right", pady=12)
+        # Профиль
+        rf = tk.Frame(inner, bg=BG_CARD); rf.pack(side="right", pady=14)
         is_adm = self._adm
-        prof_bg = lerp_color(BG_VOID, ADM_ACC if is_adm else AC_MAIN, 0.12)
+        prof_bg = lerp_color(BG_VOID, ADM_ACC if is_adm else AC_MAIN, 0.10)
         badge_brd = ADM_ACC if is_adm else AC_MAIN
         badge_outer = tk.Frame(rf, bg=badge_brd, padx=1, pady=1, cursor="hand2")
-        badge_outer.pack(pady=(0, 4))
+        badge_outer.pack(pady=(0, 5))
         badge_in = tk.Frame(badge_outer, bg=prof_bg); badge_in.pack(fill="both")
         tk.Frame(badge_in, bg=badge_brd, height=1).pack(fill="x")
-        badge_row = tk.Frame(badge_in, bg=prof_bg); badge_row.pack(padx=14, pady=8)
+        badge_row = tk.Frame(badge_in, bg=prof_bg); badge_row.pack(padx=14, pady=9)
         icon_c = ADM_ACC if is_adm else AC_MAIN
         tk.Label(badge_row, text="⚡" if is_adm else "◈", bg=prof_bg, fg=icon_c,
-                 font=("Segoe UI", 11)).pack(side="left", padx=(0, 7))
+                 font=("Segoe UI", 12)).pack(side="left", padx=(0, 8))
         tk.Label(badge_row, text=self._nick, bg=prof_bg, fg=TX_WHITE,
-                 font=("Segoe UI", 10, "bold")).pack(side="left")
+                 font=("Segoe UI", 11, "bold")).pack(side="left")
         if is_adm: make_badge(badge_in, "ADMIN", ADM_ACC).pack(padx=10, pady=(0, 6), anchor="e")
         for w in [badge_outer, badge_in, badge_row]:
             try: w.bind("<Button-1>", lambda e: self._show("profile"))
@@ -1340,7 +1481,7 @@ class AngelsLauncher(tk.Tk):
         try:
             c = self._dot.cget("fg")
             self._dot.configure(fg=AC_GREEN if c==AC_MINT else AC_MINT)
-            self.after(900, self._pulse_dot)
+            self.after(850, self._pulse_dot)
         except: pass
 
     def _tick_clock(self):
@@ -1348,15 +1489,15 @@ class AngelsLauncher(tk.Tk):
         except: pass
 
     def _build_sidebar(self, body):
-        side = tk.Frame(body, bg=BG_CARD, width=244)
+        side = tk.Frame(body, bg=BG_CARD, width=252)
         side.pack(side="left", fill="y"); side.pack_propagate(False)
         tk.Frame(side, bg=BD_MID, width=1).pack(side="right", fill="y")
 
-        mc = tk.Canvas(side, bg=BG_CARD, width=36, height=26, highlightthickness=0)
-        mc.pack(pady=(12, 0), padx=16, anchor="w")
-        draw_wings(mc, 18, 15, 8)
+        mc = tk.Canvas(side, bg=BG_CARD, width=36, height=28, highlightthickness=0)
+        mc.pack(pady=(14, 0), padx=18, anchor="w")
+        draw_wings(mc, 18, 16, 9)
         tk.Label(side, text="НАВИГАЦИЯ", bg=BG_CARD, fg=TX_DARK,
-                 font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=18, pady=(2, 6))
+                 font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=18, pady=(2, 7))
         tk.Frame(side, bg=BD_DARK, height=1).pack(fill="x", padx=12)
 
         self._tabs = {}
@@ -1377,7 +1518,7 @@ class AngelsLauncher(tk.Tk):
 
         for item in sections:
             if len(item) == 2:
-                sf = tk.Frame(side, bg=BG_CARD); sf.pack(fill="x", padx=10, pady=(8, 2))
+                sf = tk.Frame(side, bg=BG_CARD); sf.pack(fill="x", padx=10, pady=(9, 2))
                 tk.Frame(sf, bg=BD_DARK, height=1).pack(fill="x", side="left", expand=True, pady=6)
                 lbl_col = ADM_ACC if "ADMIN" in item[0] else TX_DARK
                 tk.Label(sf, text=f"  {item[0]}  ", bg=BG_CARD, fg=lbl_col,
@@ -1390,7 +1531,7 @@ class AngelsLauncher(tk.Tk):
             btn_bg = lerp_color(BG_VOID, ADM_BG, 0.5) if is_adm_item else BG_CARD
             btn = make_pill_button(side, name, command=lambda k=key: self._show(k),
                                     bg=btn_bg, fg=normal_fg, hover_bg=BG_HOVER, hover_fg=TX_WHITE,
-                                    font=("Segoe UI", 11), px=14, py=8, icon=icon)
+                                    font=("Segoe UI", 11), px=14, py=9, icon=icon)
             btn.pack(fill="x", padx=6, pady=2)
             btn._key = key; btn._accent = accent_col; btn._normal_fg = normal_fg
             self._tabs[key] = btn
@@ -1398,19 +1539,22 @@ class AngelsLauncher(tk.Tk):
         tk.Frame(side, bg=BD_DARK, height=1).pack(fill="x", padx=12, pady=8)
         valid, status = check_subscription(self._user)
         sub_col = AC_GREEN if valid else AC_RED
-        sub_bg = lerp_color(BG_VOID, sub_col, 0.08)
-        sub_brd = lerp_color(BG_VOID, sub_col, 0.3)
+        sub_bg = lerp_color(BG_VOID, sub_col, 0.07)
+        sub_brd = lerp_color(BG_VOID, sub_col, 0.35)
         sf = tk.Frame(side, bg=sub_brd, padx=1, pady=1); sf.pack(fill="x", padx=10, pady=(0, 6))
         si = tk.Frame(sf, bg=sub_bg); si.pack(fill="both")
         tk.Frame(si, bg=sub_col, height=1).pack(fill="x")
-        sr = tk.Frame(si, bg=sub_bg); sr.pack(padx=10, pady=7)
+        sr = tk.Frame(si, bg=sub_bg); sr.pack(padx=10, pady=8)
         tk.Label(sr, text=f"{'✓' if valid else '⚠'}  {status}", bg=sub_bg, fg=sub_col,
                  font=("Segoe UI", 9, "bold")).pack(anchor="w")
         if not valid:
             tk.Label(sr, text=f"Продление: {TG_LINK}", bg=sub_bg, fg=AC_RED,
                      font=("Segoe UI", 7)).pack(anchor="w")
-        tk.Label(side, text=f"v{_read_installed_version()}  Neon Edition",
-                 bg=BG_CARD, fg=TX_DARK, font=("Segoe UI", 7)).pack(side="bottom", pady=(0, 4))
+        
+        # Версия + DLL fix
+        ver_f = tk.Frame(side, bg=BG_CARD); ver_f.pack(side="bottom", fill="x", padx=10, pady=(0, 6))
+        tk.Label(ver_f, text=f"v{_read_installed_version()} Crystal  🛡 DLL Fixed",
+                 bg=BG_CARD, fg=TX_DARK, font=("Segoe UI", 7)).pack(anchor="w")
         tk.Frame(side, bg=BD_DARK, height=1).pack(side="bottom", fill="x", padx=10)
 
     def _show(self, key):
@@ -1419,7 +1563,7 @@ class AngelsLauncher(tk.Tk):
             is_active = (k == key)
             acc = getattr(btn, '_accent', AC_MAIN)
             normal_fg = getattr(btn, '_normal_fg', TX_MID)
-            active_bg = lerp_color(BG_VOID, acc, 0.15)
+            active_bg = lerp_color(BG_VOID, acc, 0.13)
             if is_active:
                 btn.configure(bg=active_bg); btn._inner.configure(bg=active_bg); btn._row.configure(bg=active_bg)
                 for lbl in btn._labels: lbl.configure(bg=active_bg, fg=acc)
@@ -1433,16 +1577,21 @@ class AngelsLauncher(tk.Tk):
                 for lbl in btn._labels: lbl.configure(bg=BG_CARD, fg=normal_fg)
                 if hasattr(btn, '_active_bar') and btn._active_bar:
                     btn._active_bar.place_forget()
-        self._panels[key].pack(fill="both", expand=True, padx=20, pady=16)
+        self._panels[key].pack(fill="both", expand=True, padx=20, pady=18)
         self._active_tab = key
 
     def _section_header(self, parent, text, icon="◈", color=AC_MAIN):
-        f = tk.Frame(parent, bg=BG_VOID); f.pack(fill="x", pady=(0, 14))
+        f = tk.Frame(parent, bg=BG_VOID); f.pack(fill="x", pady=(0, 16))
         row = tk.Frame(f, bg=BG_VOID); row.pack(fill="x")
-        tk.Label(row, text=icon, bg=BG_VOID, fg=color, font=("Segoe UI", 14)).pack(side="left", padx=(0, 8))
+        # Иконка в кружке
+        ic_f = tk.Frame(row, bg=lerp_color(BG_VOID, color, 0.15),
+                         highlightthickness=1, highlightbackground=lerp_color(BG_VOID, color, 0.4))
+        ic_f.pack(side="left", padx=(0, 12))
+        tk.Label(ic_f, text=icon, bg=lerp_color(BG_VOID, color, 0.15), fg=color,
+                 font=("Segoe UI", 13), padx=8, pady=5).pack()
         tk.Label(row, text=text, bg=BG_VOID, fg=TX_WHITE,
-                 font=("Segoe UI", 15, "bold")).pack(side="left")
-        tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", pady=(8, 0))
+                 font=("Segoe UI", 16, "bold")).pack(side="left")
+        tk.Frame(f, bg=BD_DARK, height=1).pack(fill="x", pady=(10, 0))
         return f
 
     def _neon_card(self, parent, accent=AC_MAIN, title=None, **pkw):
@@ -1457,47 +1606,51 @@ class AngelsLauncher(tk.Tk):
         return inner
 
     # ──────────────────────────────────────────────────
-    #  HOME PANEL — улучшенное меню с быстрыми кнопками
+    #  HOME PANEL — Crystal Edition
     # ──────────────────────────────────────────────────
     def _mk_home(self, parent):
         f = tk.Frame(parent, bg=BG_VOID)
 
-        # Верхняя часть — информация + крылья
-        top = tk.Frame(f, bg=BG_VOID); top.pack(fill="x", pady=(0, 8))
+        top = tk.Frame(f, bg=BG_VOID); top.pack(fill="x", pady=(0, 10))
 
-        left_top = tk.Frame(top, bg=BG_VOID); left_top.pack(side="left", fill="y")
-        wc = tk.Canvas(left_top, bg=BG_VOID, width=120, height=70, highlightthickness=0)
-        wc.pack()
-        draw_wings(wc, 60, 42, 26)
-        tk.Label(left_top, text="ANGELS LAUNCHER", bg=BG_VOID, fg=TX_WHITE,
-                 font=("Segoe UI", 11, "bold")).pack()
-        tk.Label(left_top, text=f"v{_read_installed_version()}  ·  MC {MC_VERSION}",
-                 bg=BG_VOID, fg=TX_DIM, font=("Segoe UI", 8)).pack()
+        # Левый блок — лого + крылья
+        left_top = tk.Frame(top, bg=lerp_color(BG_VOID, AC_MAIN, 0.04),
+                             highlightthickness=1, highlightbackground=lerp_color(BG_VOID, AC_MAIN, 0.2))
+        left_top.pack(side="left", fill="y", padx=(0, 10))
+        tk.Frame(left_top, bg=AC_MAIN, height=2).pack(fill="x")
+        wc = tk.Canvas(left_top, bg=lerp_color(BG_VOID, AC_MAIN, 0.04), width=130, height=80, highlightthickness=0)
+        wc.pack(pady=(8, 0))
+        draw_wings(wc, 65, 48, 28)
+        tk.Label(left_top, text="ANGELS", bg=lerp_color(BG_VOID, AC_MAIN, 0.04), fg=TX_WHITE,
+                 font=("Segoe UI", 12, "bold")).pack()
+        tk.Label(left_top, text=f"v{_read_installed_version()}", bg=lerp_color(BG_VOID, AC_MAIN, 0.04),
+                 fg=TX_DIM, font=("Segoe UI", 8)).pack(pady=(0, 10))
 
-        # Быстрая информация справа
-        right_top = tk.Frame(top, bg=BG_VOID); right_top.pack(side="left", fill="both", expand=True, padx=(16, 0))
+        # Правый блок — инфо
+        right_top = tk.Frame(top, bg=BG_VOID); right_top.pack(side="left", fill="both", expand=True)
         valid, sub_status = check_subscription(self._user)
         info_rows = [
-            ("◈ Игрок",    self._nick,                           AC_MAIN),
-            ("◉ Роль",     "⚡ ADMIN" if self._adm else "Игрок", ADM_ACC if self._adm else TX_MID),
-            ("◎ Forge",    FORGE_VERSION,                         AC_GLOW),
-            ("◈ Подписка", sub_status,                            AC_GREEN if valid else AC_RED),
-            ("◈ RAM",      f"{self.ram.get()} / {TOTAL_RAM} ГБ", AC_MINT),
+            ("◈ Игрок",    self._nick,                            AC_MAIN),
+            ("◉ Роль",     "⚡ ADMIN" if self._adm else "Игрок",  ADM_ACC if self._adm else TX_MID),
+            ("◎ Forge",    FORGE_VERSION,                          AC_GLOW),
+            ("◈ Подписка", sub_status,                             AC_GREEN if valid else AC_RED),
+            ("◈ RAM",      f"{self.ram.get()} / {TOTAL_RAM} ГБ",  AC_MINT),
+            ("🛡 DLL Fix", "Активен",                              AC_GREEN),
         ]
         info_card_outer = tk.Frame(right_top, bg=BD_MID, padx=1, pady=1)
         info_card_outer.pack(fill="both", expand=True)
         info_card = tk.Frame(info_card_outer, bg=BG_CARD); info_card.pack(fill="both")
         tk.Frame(info_card, bg=AC_MAIN, height=2).pack(fill="x")
         for i, (lbl, val, col) in enumerate(info_rows):
-            rbg = BG_CARD if i%2==0 else lerp_color(BG_VOID, BG_ITEM, 0.5)
+            rbg = BG_CARD if i%2==0 else lerp_color(BG_VOID, BG_ITEM, 0.6)
             r = tk.Frame(info_card, bg=rbg); r.pack(fill="x")
             tk.Label(r, text=lbl, bg=rbg, fg=TX_DIM, font=("Segoe UI", 9),
-                     anchor="w", width=12).pack(side="left", padx=10, pady=4)
+                     anchor="w", width=13).pack(side="left", padx=12, pady=5)
             tk.Label(r, text=val, bg=rbg, fg=col,
-                     font=("Segoe UI", 9, "bold")).pack(side="right", padx=10)
+                     font=("Segoe UI", 9, "bold")).pack(side="right", padx=12)
 
-        # Быстрые кнопки действий
-        quick = tk.Frame(f, bg=BG_VOID); quick.pack(fill="x", pady=(6, 8))
+        # Быстрые кнопки
+        quick = tk.Frame(f, bg=BG_VOID); quick.pack(fill="x", pady=(0, 8))
         for icon, lbl, cmd, style in [
             ("◐", "Серверы",   lambda: self._show("multi"),    "ghost"),
             ("◎", "Моды",      lambda: self._show("mods"),     "ghost"),
@@ -1505,10 +1658,10 @@ class AngelsLauncher(tk.Tk):
             ("▸", "Консоль",   lambda: self._show("console"),  "ghost"),
         ]:
             btn = make_action_button(quick, f"{icon} {lbl}", command=cmd, style=style,
-                                      font=("Segoe UI", 9), px=12, py=6)
+                                      font=("Segoe UI", 9), px=14, py=7)
             btn.pack(side="left", padx=3)
 
-        # Статус и прогресс-бар
+        # Статус
         meta = tk.Frame(f, bg=BG_VOID); meta.pack(fill="x", pady=(2, 2))
         tk.Label(meta, textvariable=self.status, bg=BG_VOID, fg=TX_MID,
                  font=("Segoe UI", 9), anchor="w").pack(side="left")
@@ -1517,25 +1670,37 @@ class AngelsLauncher(tk.Tk):
         tk.Label(meta, textvariable=self.spd_var, bg=BG_VOID, fg=AC_MINT,
                  font=("Segoe UI", 9)).pack(side="right", padx=8)
 
-        self._pb = NeonProgressBar(f, height=8, bg=BG_VOID, fg=AC_MAIN)
-        self._pb.pack(fill="x", pady=(2, 8))
+        # Crystal прогресс-бар
+        self._pb = CrystalProgressBar(f, height=10, bg=BG_VOID, fg=AC_MAIN)
+        self._pb.pack(fill="x", pady=(2, 10))
         self.progress.trace_add("write", lambda *_: self._pb.set(self.progress.get()/100))
 
-        # Кнопка ИГРАТЬ — главная
-        self.play_btn = GlowButton(f, "◈   ИГРАТЬ", command=self._start,
-                                    bg=BG_CARD, fg=AC_MAIN, glow=AC_MAIN,
-                                    font=("Segoe UI", 15, "bold"), height=68)
+        # Crystal кнопка ИГРАТЬ
+        self.play_btn = CrystalButton(f, "◈   ИГРАТЬ", command=self._start,
+                                       bg=BG_CARD, fg=AC_MAIN, glow=AC_MAIN,
+                                       font=("Segoe UI", 16, "bold"), height=76)
         self.play_btn.pack(fill="x")
 
-        # Пиратский статус
-        pirate_f = tk.Frame(f, bg=lerp_color(BG_VOID, AC_GOLD, 0.08),
+        # Pirate + DLL статус
+        status_f = tk.Frame(f, bg=BG_VOID); status_f.pack(fill="x", pady=(10, 0))
+        
+        pirate_f = tk.Frame(status_f, bg=lerp_color(BG_VOID, AC_GOLD, 0.07),
                              highlightthickness=1,
                              highlightbackground=lerp_color(BG_VOID, AC_GOLD, 0.3))
-        pirate_f.pack(fill="x", pady=(8, 0))
+        pirate_f.pack(side="left", fill="both", expand=True, padx=(0, 5))
         tk.Frame(pirate_f, bg=AC_GOLD, height=1).pack(fill="x")
-        tk.Label(pirate_f, text="  🏴‍☠️  Pirate Mode — демо-режим ОТКЛЮЧЁН  ·  Legacy запуск активен",
-                 bg=lerp_color(BG_VOID, AC_GOLD, 0.08), fg=AC_GOLD,
-                 font=("Segoe UI", 9), anchor="w").pack(padx=12, pady=8, side="left")
+        tk.Label(pirate_f, text="  🏴‍☠️  Pirate Mode — Legacy запуск",
+                 bg=lerp_color(BG_VOID, AC_GOLD, 0.07), fg=AC_GOLD,
+                 font=("Segoe UI", 9), anchor="w").pack(padx=10, pady=7, side="left")
+        
+        dll_f = tk.Frame(status_f, bg=lerp_color(BG_VOID, AC_GREEN, 0.07),
+                          highlightthickness=1,
+                          highlightbackground=lerp_color(BG_VOID, AC_GREEN, 0.3))
+        dll_f.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        tk.Frame(dll_f, bg=AC_GREEN, height=1).pack(fill="x")
+        tk.Label(dll_f, text="  🛡  Python DLL Fix — активен",
+                 bg=lerp_color(BG_VOID, AC_GREEN, 0.07), fg=AC_GREEN,
+                 font=("Segoe UI", 9), anchor="w").pack(padx=10, pady=7, side="left")
         return f
 
     # ──────────────────────────────────────────────────
@@ -1549,16 +1714,16 @@ class AngelsLauncher(tk.Tk):
         card = self._neon_card(f, AC_MAIN, fill="x", pady=(0, 10))
         top = tk.Frame(card, bg=BG_CARD); top.pack(fill="x", padx=16, pady=14)
 
-        av = tk.Canvas(top, bg=BG_CARD, width=80, height=80, highlightthickness=0)
+        av = tk.Canvas(top, bg=BG_CARD, width=84, height=84, highlightthickness=0)
         av.pack(side="left", padx=(0, 16))
-        for r, col in [(39, BD_MID), (33, ADM_ACC if self._adm else AC_DIM), (27, ADM_ACC if self._adm else AC_MAIN)]:
-            av.create_oval(40-r, 40-r, 40+r, 40+r, outline=col, fill="", width=1)
-        av.create_oval(14, 14, 66, 66, fill=lerp_color(BG_VOID, BG_ITEM, 0.7), outline="")
-        av.create_text(40, 40, text=self._nick[:2].upper(), fill=TX_WHITE, font=("Segoe UI", 18, "bold"))
+        for r, col in [(41, BD_MID), (34, ADM_ACC if self._adm else AC_DIM), (28, ADM_ACC if self._adm else AC_MAIN)]:
+            av.create_oval(42-r, 42-r, 42+r, 42+r, outline=col, fill="", width=1)
+        av.create_oval(14, 14, 70, 70, fill=lerp_color(BG_VOID, BG_ITEM, 0.8), outline="")
+        av.create_text(42, 42, text=self._nick[:2].upper(), fill=TX_WHITE, font=("Segoe UI", 19, "bold"))
 
         inf = tk.Frame(top, bg=BG_CARD); inf.pack(side="left", fill="y")
         tk.Label(inf, text=self._nick, bg=BG_CARD, fg=TX_WHITE,
-                 font=("Segoe UI", 16, "bold"), anchor="w").pack(anchor="w")
+                 font=("Segoe UI", 17, "bold"), anchor="w").pack(anchor="w")
         role_col = ADM_ACC if self._adm else AC_MAIN
         tk.Label(inf, text="⚡ Администратор" if self._adm else "◈ Игрок",
                  bg=BG_CARD, fg=role_col, font=("Segoe UI", 10)).pack(anchor="w")
@@ -1576,13 +1741,13 @@ class AngelsLauncher(tk.Tk):
             ("◎", "Тип ключа",     u.get("duration_label","∞") if u else "—", AC_GOLD),
         ]
         for icon, title, val, col in stats_data:
-            sb = tk.Frame(stats_row, bg=lerp_color(BG_VOID, col, 0.08),
+            sb = tk.Frame(stats_row, bg=lerp_color(BG_VOID, col, 0.07),
                           highlightthickness=1, highlightbackground=lerp_color(BG_VOID, col, 0.3))
             sb.pack(side="left", fill="x", expand=True, padx=4, ipady=8)
             tk.Frame(sb, bg=col, height=1).pack(fill="x")
-            tk.Label(sb, text=f"{icon}  {title}", bg=lerp_color(BG_VOID, col, 0.08),
+            tk.Label(sb, text=f"{icon}  {title}", bg=lerp_color(BG_VOID, col, 0.07),
                      fg=TX_DIM, font=("Segoe UI", 8)).pack(pady=(4, 2))
-            tk.Label(sb, text=val, bg=lerp_color(BG_VOID, col, 0.08),
+            tk.Label(sb, text=val, bg=lerp_color(BG_VOID, col, 0.07),
                      fg=col, font=("Segoe UI", 10, "bold")).pack(pady=(0, 4))
 
         pw_card = self._neon_card(f, AC_GLOW, title="Изменить пароль", fill="x", pady=(0, 10))
@@ -1633,19 +1798,19 @@ class AngelsLauncher(tk.Tk):
     # ──────────────────────────────────────────────────
     def _mk_multi(self, parent):
         f = tk.Frame(parent, bg=BG_VOID)
-        tr = tk.Frame(f, bg=BG_VOID); tr.pack(fill="x", pady=(0, 10))
+        tr = tk.Frame(f, bg=BG_VOID); tr.pack(fill="x", pady=(0, 12))
         tk.Label(tr, text="◐  Серверы", bg=BG_VOID, fg=TX_WHITE,
                  font=("Segoe UI", 15, "bold")).pack(side="left")
         make_action_button(tr, "+ Добавить", command=self._add_server_dlg,
-                            style="ghost", font=("Segoe UI", 10, "bold"), px=14, py=7).pack(side="right")
+                            style="crystal", font=("Segoe UI", 10, "bold"), px=14, py=7).pack(side="right")
 
-        note = tk.Frame(f, bg=lerp_color(BG_VOID, AC_ORANGE, 0.08),
+        note = tk.Frame(f, bg=lerp_color(BG_VOID, AC_ORANGE, 0.07),
                         highlightthickness=1, highlightbackground=lerp_color(BG_VOID, AC_ORANGE, 0.4))
-        note.pack(fill="x", pady=(0, 10))
+        note.pack(fill="x", pady=(0, 12))
         tk.Frame(note, bg=AC_ORANGE, height=2).pack(fill="x")
         tk.Label(note, text="  ⚠  AuthMe: введи /login <пароль> после подключения",
-                 bg=lerp_color(BG_VOID, AC_ORANGE, 0.08), fg=AC_ORANGE,
-                 font=("Segoe UI", 10), anchor="w").pack(padx=12, pady=9, side="left")
+                 bg=lerp_color(BG_VOID, AC_ORANGE, 0.07), fg=AC_ORANGE,
+                 font=("Segoe UI", 10), anchor="w").pack(padx=12, pady=10, side="left")
 
         self._srv_f = tk.Frame(f, bg=BG_VOID); self._srv_f.pack(fill="both", expand=True)
         self._refresh_servers()
@@ -1656,14 +1821,14 @@ class AngelsLauncher(tk.Tk):
         if not self.servers:
             ep = self._neon_card(self._srv_f, BD_MID, fill="x")
             tk.Label(ep, text="Нет серверов. Нажми «+ Добавить»",
-                     bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 11), justify="center").pack(pady=28)
+                     bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 11), justify="center").pack(pady=32)
             return
         for i, srv in enumerate(self.servers):
             host = srv.get("host", ""); port = int(srv.get("port", 25565))
             out = tk.Frame(self._srv_f, bg=BD_MID, padx=1, pady=1); out.pack(fill="x", pady=5)
             row = tk.Frame(out, bg=BG_CARD); row.pack(fill="x")
             tk.Frame(row, bg=BD_DARK, height=1).pack(fill="x")
-            inn = tk.Frame(row, bg=BG_CARD); inn.pack(fill="x", padx=14, pady=12)
+            inn = tk.Frame(row, bg=BG_CARD); inn.pack(fill="x", padx=14, pady=13)
             sl = tk.Label(inn, text="●", bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 14))
             sl.pack(side="left", padx=(0, 12))
             inf = tk.Frame(inn, bg=BG_CARD); inf.pack(side="left", fill="y")
@@ -1673,11 +1838,11 @@ class AngelsLauncher(tk.Tk):
                      font=("Segoe UI", 9), anchor="w").pack(anchor="w")
             bf = tk.Frame(inn, bg=BG_CARD); bf.pack(side="right")
             make_action_button(bf, "Пинг", command=lambda h=host,p=port,l=sl: self._ping(h,p,l),
-                                style="ghost", px=10, py=5, font=("Segoe UI", 9)).pack(side="left", padx=3)
+                                style="ghost", px=10, py=6, font=("Segoe UI", 9)).pack(side="left", padx=3)
             make_action_button(bf, "▶ Играть", command=lambda h=host,p=port: self._start_with(h,p),
-                                style="primary", px=12, py=5, font=("Segoe UI", 10, "bold")).pack(side="left", padx=3)
+                                style="primary", px=12, py=6, font=("Segoe UI", 10, "bold")).pack(side="left", padx=3)
             make_action_button(bf, "✕", command=lambda i=i: self._del_server(i),
-                                style="danger", px=8, py=5, font=("Segoe UI", 10)).pack(side="left", padx=3)
+                                style="danger", px=8, py=6, font=("Segoe UI", 10)).pack(side="left", padx=3)
 
     def _ping(self, host, port, lbl):
         def do():
@@ -1695,15 +1860,15 @@ class AngelsLauncher(tk.Tk):
 
     def _add_server_dlg(self):
         dlg = tk.Toplevel(self); dlg.title("Добавить сервер")
-        dlg.configure(bg=BG_CARD); dlg.geometry("460x300"); dlg.resizable(False, False); dlg.grab_set()
+        dlg.configure(bg=BG_CARD); dlg.geometry("480x320"); dlg.resizable(False, False); dlg.grab_set()
         tk.Frame(dlg, bg=AC_MAIN, height=2).pack(fill="x")
         tk.Label(dlg, text="Добавить сервер", bg=BG_CARD, fg=TX_WHITE,
-                 font=("Segoe UI", 13, "bold")).pack(pady=(16, 12))
+                 font=("Segoe UI", 13, "bold")).pack(pady=(16, 14))
         nv = tk.StringVar(); hv = tk.StringVar(); pv = tk.StringVar(value="25565")
         for lt, var, ph, icon in [("Название", nv, "Мой сервер", "◈"),
                                     ("IP-адрес", hv, "play.server.net", "◐"),
                                     ("Порт",     pv, "25565", "◎")]:
-            r = tk.Frame(dlg, bg=BG_CARD); r.pack(fill="x", padx=20, pady=4)
+            r = tk.Frame(dlg, bg=BG_CARD); r.pack(fill="x", padx=20, pady=5)
             tk.Label(r, text=lt, bg=BG_CARD, fg=TX_MID, font=("Segoe UI", 10),
                      width=9, anchor="w").pack(side="left")
             make_neon_entry(r, var, placeholder=ph, icon=icon).pack(side="left", fill="x", expand=True)
@@ -1716,7 +1881,7 @@ class AngelsLauncher(tk.Tk):
             save_servers(self.servers); self._refresh_servers()
             self._toast.show(f"Сервер добавлен: {h}:{p}", kind="success"); dlg.destroy()
         make_action_button(dlg, "◈  Сохранить", command=save, style="primary",
-                            font=("Segoe UI", 11, "bold"), px=20, py=12).pack(fill="x", padx=20, pady=14)
+                            font=("Segoe UI", 11, "bold"), px=20, py=12).pack(fill="x", padx=20, pady=16)
 
     def _start_with(self, host, port):
         self._show("home"); self._connect_server = (host, port); self._start()
@@ -1731,7 +1896,7 @@ class AngelsLauncher(tk.Tk):
             ("⚙", "Minecraft Forge", "Загрузчик модов", AC_GLOW, FORGE_VERSION),
             ("◈", MOD_NAME, "Основной мод лаунчера — Angels Mod", AC_MAIN, MOD_VERSION)
         ]:
-            out = tk.Frame(f, bg=lerp_color(BG_VOID, col, 0.25), padx=1, pady=1)
+            out = tk.Frame(f, bg=lerp_color(BG_VOID, col, 0.22), padx=1, pady=1)
             out.pack(fill="x", pady=6)
             cf = tk.Frame(out, bg=BG_CARD); cf.pack(fill="x")
             tk.Frame(cf, bg=col, width=4).pack(side="left", fill="y")
@@ -1744,14 +1909,15 @@ class AngelsLauncher(tk.Tk):
                      font=("Segoe UI", 10), anchor="w").pack(anchor="w")
             make_badge(cf, "◈ АКТИВЕН", AC_GREEN).pack(side="right", padx=14, pady=14)
 
-        # Информация об URL мода
-        url_info = tk.Frame(f, bg=lerp_color(BG_VOID, AC_GLOW, 0.08),
+        url_info = tk.Frame(f, bg=lerp_color(BG_VOID, AC_GLOW, 0.07),
                              highlightthickness=1, highlightbackground=lerp_color(BG_VOID, AC_GLOW, 0.3))
-        url_info.pack(fill="x", pady=(8, 0))
+        url_info.pack(fill="x", pady=(10, 0))
         tk.Frame(url_info, bg=AC_GLOW, height=1).pack(fill="x")
-        tk.Label(url_info, text=f"  ◈  URL мода: {_get_mod_url()[:60]}...",
-                 bg=lerp_color(BG_VOID, AC_GLOW, 0.08), fg=AC_GLOW,
-                 font=("Cascadia Code", 8), anchor="w").pack(padx=12, pady=8)
+        url_text = _get_mod_url()
+        display_url = url_text[:70] + "..." if len(url_text) > 70 else url_text
+        tk.Label(url_info, text=f"  ◈  URL мода: {display_url}",
+                 bg=lerp_color(BG_VOID, AC_GLOW, 0.07), fg=AC_GLOW,
+                 font=("Cascadia Code", 8), anchor="w").pack(padx=12, pady=9)
         return f
 
     # ──────────────────────────────────────────────────
@@ -1759,7 +1925,7 @@ class AngelsLauncher(tk.Tk):
     # ──────────────────────────────────────────────────
     def _mk_console(self, parent):
         f = tk.Frame(parent, bg=BG_VOID)
-        top = tk.Frame(f, bg=BG_VOID); top.pack(fill="x", pady=(0, 8))
+        top = tk.Frame(f, bg=BG_VOID); top.pack(fill="x", pady=(0, 10))
         tk.Label(top, text="▸  Консоль", bg=BG_VOID, fg=TX_WHITE,
                  font=("Segoe UI", 14, "bold")).pack(side="left")
         make_badge(top, "⚡ ADMIN" if self._adm else "◈ USER",
@@ -1767,7 +1933,7 @@ class AngelsLauncher(tk.Tk):
         make_action_button(top, "Очистить", command=self._clear_con,
                             style="ghost", px=10, py=4, font=("Segoe UI", 9)).pack(side="right")
 
-        out = tk.Frame(f, bg=lerp_color(BG_VOID, ADM_ACC if self._adm else AC_MAIN, 0.4), padx=1, pady=1)
+        out = tk.Frame(f, bg=lerp_color(BG_VOID, ADM_ACC if self._adm else AC_MAIN, 0.35), padx=1, pady=1)
         out.pack(fill="both", expand=True)
         inn = tk.Frame(out, bg=BG_VOID); inn.pack(fill="both", expand=True)
         tk.Frame(inn, bg=ADM_ACC if self._adm else AC_MAIN, height=2).pack(fill="x")
@@ -1794,7 +1960,7 @@ class AngelsLauncher(tk.Tk):
         self._ent = tk.Entry(prow, textvariable=self._cin, bg=BG_ITEM, fg=TX_MAIN,
                              insertbackground=AC_MAIN, relief="flat",
                              font=("Cascadia Code", 10), bd=8)
-        self._ent.pack(side="left", fill="x", expand=True, ipady=7)
+        self._ent.pack(side="left", fill="x", expand=True, ipady=8)
         self._ent.bind("<Return>", self._con_send)
         self._ent.bind("<Up>", self._hist_up)
         self._ent.bind("<Down>", self._hist_dn)
@@ -1831,17 +1997,24 @@ class AngelsLauncher(tk.Tk):
             base = [("help","справка"),("clear","очистить"),("version","версия"),
                     ("ram <гб>","RAM"),("nick <имя>","ник"),("ping <host>","пинг"),
                     ("check <ключ>","проверить ключ"),("reinstall","Forge"),
-                    ("sub","подписка"),("update","обновления"),("exit","закрыть")]
+                    ("sub","подписка"),("update","обновления"),("dll","DLL fix info"),("exit","закрыть")]
             adm = [("keygen [n]","⚡ ключи"),("tkey <сек>","⚡ тайм-ключ"),
                    ("users","⚡ игроки"),("ban <ник>","⚡ бан"),
                    ("unban <ник>","⚡ разбан"),("deluser <ник>","⚡ удалить"),
                    ("stats","⚡ статистика")] if self._adm else []
             for name, desc in base + adm:
                 self._log(f"  {name:<26} — {desc}", "gold" if "⚡" in desc else "muted")
+        elif c == "dll":
+            self._log("  🛡 Python DLL Fix (v15.0):", "accent")
+            self._log(f"  frozen: {getattr(sys, 'frozen', False)}", "info")
+            self._log(f"  executable: {sys.executable}", "info")
+            meipass = getattr(sys, '_MEIPASS', 'N/A')
+            self._log(f"  _MEIPASS: {meipass}", "info")
+            self._log(f"  PATH dirs: {len(os.environ.get('PATH','').split(os.pathsep))}", "info")
         elif c == "clear": self._clear_con()
         elif c == "version":
-            self._log(f"  Angels Launcher v{_read_installed_version()} Neon Edition", "accent")
-            self._log(f"  MC {MC_VERSION}  ·  Forge {FORGE_VERSION}", "info")
+            self._log(f"  Angels Launcher v{_read_installed_version()} Crystal Edition", "accent")
+            self._log(f"  MC {MC_VERSION}  ·  Forge {FORGE_VERSION}  ·  🛡 DLL Fixed", "info")
         elif c == "sub":
             valid, status = check_subscription(self._user)
             self._log(f"  Подписка: {status}", "accent" if valid else "error")
@@ -1911,18 +2084,18 @@ class AngelsLauncher(tk.Tk):
         else: self._log(f"  Неизвестная команда: {cmd}  (введи 'help')", "warn")
 
     # ──────────────────────────────────────────────────
-    #  SETTINGS — улучшенные
+    #  SETTINGS
     # ──────────────────────────────────────────────────
     def _mk_settings(self, parent):
         f = tk.Frame(parent, bg=BG_VOID)
         self._section_header(f, "Настройки", "⚙", TX_MID)
 
         def setting_row(label, desc, widget_fn):
-            outer = tk.Frame(f, bg=lerp_color(BG_VOID, BD_MID, 0.5), padx=1, pady=1)
+            outer = tk.Frame(f, bg=lerp_color(BG_VOID, BD_MID, 0.45), padx=1, pady=1)
             outer.pack(fill="x", pady=4)
             row = tk.Frame(outer, bg=BG_CARD); row.pack(fill="x")
             tk.Frame(row, bg=BD_DARK, height=1).pack(fill="x")
-            lf_ = tk.Frame(row, bg=BG_CARD); lf_.pack(side="left", padx=16, pady=12)
+            lf_ = tk.Frame(row, bg=BG_CARD); lf_.pack(side="left", padx=16, pady=13)
             tk.Label(lf_, text=label, bg=BG_CARD, fg=TX_MAIN, font=("Segoe UI", 11), anchor="w").pack(anchor="w")
             if desc: tk.Label(lf_, text=desc, bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 9), anchor="w").pack(anchor="w")
             widget_fn(row)
@@ -1939,7 +2112,7 @@ class AngelsLauncher(tk.Tk):
                      font=("Segoe UI", 13, "bold"), width=2).pack(side="right")
             tk.Scale(fr, from_=1, to=mx, orient="horizontal", variable=self.ram,
                      bg=BG_CARD, fg=AC_MAIN, troughcolor=BG_ITEM, highlightthickness=0,
-                     activebackground=AC_MAIN, showvalue=False, length=180, sliderlength=20).pack(side="right")
+                     activebackground=AC_MAIN, showvalue=False, length=190, sliderlength=22).pack(side="right")
 
         def mk_fs(r):
             make_action_button(r, "⛶  F11 — переключить", command=self._toggle_fs,
@@ -1966,16 +2139,29 @@ class AngelsLauncher(tk.Tk):
         setting_row("Оперативная память", f"Система: {TOTAL_RAM} ГБ", mk_ram)
         setting_row("Полный экран", "F11 — переключить", mk_fs)
         setting_row("Папка Minecraft", "Расположение файлов", mk_path)
-        setting_row("Ссылка на мод", "Google Drive или прямая ссылка (сохрани для обновления)", mk_url)
+        setting_row("Ссылка на мод", "Google Drive или прямая ссылка", mk_url)
 
-        # Информация о пиратском режиме
-        pirate_info = self._neon_card(f, AC_GOLD, title="🏴‍☠️ Pirate Mode Info", fill="x", pady=(14, 0))
+        # DLL Fix info
+        dll_card = self._neon_card(f, AC_GREEN, title="🛡 Python DLL Fix — v15.0", fill="x", pady=(14, 0))
+        dll_rows = [
+            f"✓  PyInstaller _MEIPASS path: {getattr(sys, '_MEIPASS', 'N/A (script mode)')}",
+            f"✓  Executable: {sys.executable[:60]}",
+            f"✓  Frozen mode: {getattr(sys, 'frozen', False)}",
+            "✓  sys.path патч применён при старте",
+            "✓  DLL directory установлен через SetDllDirectoryW",
+            "✓  PATH env var обновлён для нахождения DLL",
+        ]
+        for row_txt in dll_rows:
+            tk.Label(dll_card, text=f"  {row_txt}", bg=BG_CARD, fg=TX_MID,
+                     font=("Cascadia Code", 8), anchor="w").pack(fill="x", padx=8, pady=2)
+
+        # Pirate Mode info
+        pirate_info = self._neon_card(f, AC_GOLD, title="🏴‍☠️ Pirate Mode Info", fill="x", pady=(10, 0))
         info_rows = [
             "✓  --userType legacy  — отключает проверку лицензии",
             "✓  --accessToken 0    — не требует настоящего токена",
             "✓  --uuid <random>    — случайный UUID для каждой сессии",
-            "✓  Demo Mode DISABLED — убраны флаги isDemoUser",
-            "✓  Работает как Legacy Launcher",
+            "✓  Demo Mode DISABLED — флаги isDemoUser убраны",
         ]
         for row_txt in info_rows:
             tk.Label(pirate_info, text=f"  {row_txt}", bg=BG_CARD, fg=TX_MID,
@@ -1998,15 +2184,15 @@ class AngelsLauncher(tk.Tk):
         installed_v = _read_installed_version()
         vrow = tk.Frame(cr, bg=BG_CARD); vrow.pack(anchor="w")
         tk.Label(vrow, text=f"v{installed_v}", bg=BG_CARD, fg=AC_MAIN,
-                 font=("Segoe UI", 24, "bold")).pack(side="left")
-        tk.Label(vrow, text="  Neon Edition  —  установленная", bg=BG_CARD, fg=TX_DIM,
-                 font=("Segoe UI", 10)).pack(side="left", pady=8)
-        tk.Label(cr, text=f"GitHub: {GITHUB_REPO}", bg=BG_CARD, fg=TX_DIM,
+                 font=("Segoe UI", 26, "bold")).pack(side="left")
+        tk.Label(vrow, text="  Crystal Edition  —  установленная", bg=BG_CARD, fg=TX_DIM,
+                 font=("Segoe UI", 10)).pack(side="left", pady=10)
+        tk.Label(cr, text=f"GitHub: {GITHUB_REPO}  ·  🛡 DLL Fix активен", bg=BG_CARD, fg=TX_DIM,
                  font=("Cascadia Code", 8)).pack(anchor="w", pady=(4, 0))
 
         self._upd_status_frame = tk.Frame(f, bg=BG_VOID)
         self._upd_status_frame.pack(fill="x", pady=(0, 8))
-        self._upd_prog_bar = NeonProgressBar(f, height=6, bg=BG_VOID, fg=AC_PURPLE)
+        self._upd_prog_bar = CrystalProgressBar(f, height=7, bg=BG_VOID, fg=AC_PURPLE)
         self._upd_prog_bar.pack(fill="x", pady=(0, 4))
         self._upd_prog_lbl = tk.Label(f, text="", bg=BG_VOID, fg=TX_MID, font=("Segoe UI", 9))
         self._upd_prog_lbl.pack(anchor="w", pady=(0, 8))
@@ -2031,19 +2217,19 @@ class AngelsLauncher(tk.Tk):
             ver = self._latest_update_info["version"]; iv = _read_installed_version()
             size = self._latest_update_info.get("size", 0); sz_str = f"  ({fmt_size(size)})" if size else ""
             outer = tk.Frame(self._upd_btn_frame, bg=AC_GREEN, padx=2, pady=2); outer.pack(fill="x")
-            inn = tk.Frame(outer, bg=lerp_color(BG_VOID, AC_GREEN, 0.1)); inn.pack(fill="x")
+            inn = tk.Frame(outer, bg=lerp_color(BG_VOID, AC_GREEN, 0.09)); inn.pack(fill="x")
             tk.Frame(inn, bg=AC_GREEN, height=2).pack(fill="x")
-            r = tk.Frame(inn, bg=lerp_color(BG_VOID, AC_GREEN, 0.1)); r.pack(fill="x", padx=18, pady=14)
-            tk.Label(r, text="⬆", bg=lerp_color(BG_VOID, AC_GREEN, 0.1), fg=AC_GREEN,
+            r = tk.Frame(inn, bg=lerp_color(BG_VOID, AC_GREEN, 0.09)); r.pack(fill="x", padx=18, pady=14)
+            tk.Label(r, text="⬆", bg=lerp_color(BG_VOID, AC_GREEN, 0.09), fg=AC_GREEN,
                      font=("Segoe UI", 28)).pack(side="left", padx=(0, 12))
-            ic = tk.Frame(r, bg=lerp_color(BG_VOID, AC_GREEN, 0.1)); ic.pack(side="left", fill="y")
+            ic = tk.Frame(r, bg=lerp_color(BG_VOID, AC_GREEN, 0.09)); ic.pack(side="left", fill="y")
             tk.Label(ic, text=f"Обновление v{ver}{sz_str}",
-                     bg=lerp_color(BG_VOID, AC_GREEN, 0.1), fg=AC_GREEN,
+                     bg=lerp_color(BG_VOID, AC_GREEN, 0.09), fg=AC_GREEN,
                      font=("Segoe UI", 13, "bold"), anchor="w").pack(anchor="w")
             tk.Label(ic, text=f"v{iv}  →  v{ver}",
-                     bg=lerp_color(BG_VOID, AC_GREEN, 0.1), fg=TX_MID,
+                     bg=lerp_color(BG_VOID, AC_GREEN, 0.09), fg=TX_MID,
                      font=("Segoe UI", 10), anchor="w").pack(anchor="w")
-            br = tk.Frame(inn, bg=lerp_color(BG_VOID, AC_GREEN, 0.1)); br.pack(fill="x", padx=18, pady=(4, 14))
+            br = tk.Frame(inn, bg=lerp_color(BG_VOID, AC_GREEN, 0.09)); br.pack(fill="x", padx=18, pady=(4, 14))
             self._do_upd_btn = make_action_button(br, "⬇  СКАЧАТЬ И ОБНОВИТЬ",
                                                    command=self._do_update_now, style="success",
                                                    font=("Segoe UI", 13, "bold"), px=22, py=13)
@@ -2058,7 +2244,7 @@ class AngelsLauncher(tk.Tk):
             self._chk_status = tk.Label(ic, text="Нажми чтобы проверить обновления",
                                          bg=BG_CARD, fg=TX_MAIN, font=("Segoe UI", 12, "bold"), anchor="w")
             self._chk_status.pack(anchor="w")
-            tk.Label(ic, text=f"Установлена: v{_read_installed_version()}  ·  {GITHUB_REPO}",
+            tk.Label(ic, text=f"Установлена: v{_read_installed_version()}  ·  Crystal Edition",
                      bg=BG_CARD, fg=TX_DIM, font=("Segoe UI", 9), anchor="w").pack(anchor="w")
             br = tk.Frame(inn, bg=BG_CARD); br.pack(fill="x", padx=18, pady=(8, 14))
             self._chk_btn_w = make_action_button(br, "◈   ПРОВЕРИТЬ ОБНОВЛЕНИЯ",
@@ -2111,21 +2297,18 @@ class AngelsLauncher(tk.Tk):
         try:
             for lbl in self._do_upd_btn._labels: lbl.configure(text="⏳  Скачивание...")
         except: pass
-        self._log(f"⬆  Скачиваю v{new_ver}...", "gold")
-        self._upd_prog_bar.set(0)
+        self._log(f"⬆  Скачиваю v{new_ver}...", "gold"); self._upd_prog_bar.set(0)
         def _prog(done, total):
             if total:
                 pct = done/total
                 self.after(0, lambda p=pct,d=done,t=total: self._upd_dl_prog(p,d,t))
-        self._updater.download_and_install(url, new_ver,
-                                            on_progress=_prog,
+        self._updater.download_and_install(url, new_ver, on_progress=_prog,
                                             on_done=lambda ok,res: self.after(0, lambda: self._on_upd_downloaded(ok,res)))
 
     def _upd_dl_prog(self, pct, done, total):
         try:
             self._upd_prog_bar.set(pct)
-            self._upd_prog_lbl.configure(
-                text=f"⬇ {fmt_size(done)} / {fmt_size(total)}  ({int(pct*100)}%)", fg=AC_GLOW)
+            self._upd_prog_lbl.configure(text=f"⬇ {fmt_size(done)} / {fmt_size(total)}  ({int(pct*100)}%)", fg=AC_GLOW)
         except: pass
 
     def _on_upd_downloaded(self, ok, result):
@@ -2153,6 +2336,7 @@ class AngelsLauncher(tk.Tk):
         tk.Label(hdr_row, text="⚡  ADMIN PANEL", bg=ADM_PANEL, fg=ADM_ACC,
                  font=("Courier", 14, "bold")).pack(side="left")
         make_badge(hdr_row, SUPER_ADMIN, ADM_GOLD).pack(side="left", padx=10)
+        make_badge(hdr_row, "🛡 DLL Fixed", AC_GREEN).pack(side="left", padx=4)
         tk.Label(hdr_row, text=time.strftime("[%Y-%m-%d  %H:%M]"), bg=ADM_PANEL, fg=ADM_MUTE,
                  font=("Courier", 9)).pack(side="right")
 
@@ -2180,7 +2364,7 @@ class AngelsLauncher(tk.Tk):
         for p in self._asub_panels.values(): p.pack_forget()
         for k, b in self._asub_btns.items():
             is_active = (k == key)
-            bg = lerp_color(ADM_BG, ADM_ACC, 0.15) if is_active else ADM_PANEL
+            bg = lerp_color(ADM_BG, ADM_ACC, 0.14) if is_active else ADM_PANEL
             fg = ADM_ACC if is_active else "#660044"
             font = ("Courier", 10, "bold") if is_active else ("Courier", 10)
             try:
@@ -2455,7 +2639,6 @@ class AngelsLauncher(tk.Tk):
         f = tk.Frame(parent, bg=ADM_BG)
         tk.Label(f, text="📤  ЭКСПОРТ / ИМПОРТ БАЗЫ", bg=ADM_BG, fg=ADM_ACC,
                  font=("Courier", 12, "bold")).pack(anchor="w", pady=(0, 8))
-
         info_card = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         info_card.pack(fill="x", pady=(0, 12))
         tk.Frame(info_card, bg=ADM_ACC, height=1).pack(fill="x")
@@ -2465,7 +2648,6 @@ class AngelsLauncher(tk.Tk):
         users = _load_users()
         tk.Label(ic, text=f"Записей: {len(users)}", bg=ADM_PANEL, fg=ADM_GOLD,
                  font=("Courier", 10, "bold")).pack(anchor="w", pady=(4, 0))
-
         exp_card = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         exp_card.pack(fill="x", pady=(0, 8))
         tk.Frame(exp_card, bg=ADM_ACC2, height=1).pack(fill="x")
@@ -2479,7 +2661,6 @@ class AngelsLauncher(tk.Tk):
         make_action_button(btn_row, "📋 Экспорт ников (TXT)",
                             command=self._export_nicks, style="ghost",
                             font=("Courier", 10), px=14, py=10).pack(side="left", padx=4)
-
         imp_card = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         imp_card.pack(fill="x", pady=(0, 8))
         tk.Frame(imp_card, bg=ADM_GOLD, height=1).pack(fill="x")
@@ -2489,7 +2670,6 @@ class AngelsLauncher(tk.Tk):
         make_action_button(imc, "📂 Импортировать users.json",
                             command=self._import_users, style="warning",
                             font=("Courier", 10), px=14, py=10).pack(anchor="w")
-
         self._export_status = tk.Label(f, text="", bg=ADM_BG, fg=ADM_ACC, font=("Courier", 9))
         self._export_status.pack(anchor="w", pady=(8, 0))
         return f
@@ -2576,7 +2756,6 @@ class AngelsLauncher(tk.Tk):
                  font=("Courier", 12, "bold")).pack(side="left")
         make_action_button(top, "↻", command=self._a_refresh_bl,
                             style="ghost", font=("Courier", 10), px=10, py=5).pack(side="right")
-
         add = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         add.pack(fill="x", pady=(0, 8))
         tk.Frame(add, bg=ADM_RED, height=1).pack(fill="x")
@@ -2587,7 +2766,6 @@ class AngelsLauncher(tk.Tk):
                  relief="flat", font=("Courier", 10), bd=6, width=32).pack(side="left", padx=8, ipady=4)
         make_action_button(r, "+ Добавить", command=self._a_add_bl,
                             style="danger", font=("Courier", 9, "bold"), px=10, py=5).pack(side="left")
-
         bl_f = tk.Frame(f, bg=ADM_PANEL, highlightthickness=1, highlightbackground=ADM_MUTE)
         bl_f.pack(fill="both", expand=True)
         tk.Frame(bl_f, bg=ADM_RED, height=1).pack(fill="x")
@@ -2783,20 +2961,17 @@ class AngelsLauncher(tk.Tk):
                 ParallelDownloader(atasks, on_progress=_ap).run()
             self._log("✓  Ассеты", "accent")
 
-            # ━━━ МОД — ПРОВЕРКА И ОБНОВЛЕНИЕ ━━━
+            # МОД
             MODS_DIR.mkdir(parents=True, exist_ok=True)
             mod_jar = MODS_DIR / f"{MOD_NAME}-{MOD_VERSION}.jar"
             new_url = self.mod_url.get().strip()
             if not new_url: new_url = MOD_URL_DEFAULT
             new_url = _gdrive_direct(new_url)
-
             url_changed = check_mod_url_changed(new_url)
-
             if url_changed and mod_jar.exists():
                 self._log("⚠  URL мода изменился — удаляю старый мод...", "warn")
                 self.after(0, lambda: self._toast.show("Новый URL мода — обновляю...", kind="info"))
                 mod_jar.unlink(missing_ok=True)
-
             if not mod_jar.exists():
                 self._set_status("Скачивание мода...", 85)
                 self._log(f"◈  Загружаю мод с: {new_url}", "info")
@@ -2806,7 +2981,7 @@ class AngelsLauncher(tk.Tk):
                 _save_mod_url_config(new_url)
                 self._log(f"✓  {MOD_NAME} загружен и установлен", "accent")
             else:
-                self._log(f"✓  Мод установлен (URL не изменился)", "accent")
+                self._log(f"✓  Мод установлен", "accent")
 
             self._set_status("Запуск...", 95)
             srv = self._connect_server; self._connect_server = None
@@ -2922,16 +3097,8 @@ class AngelsLauncher(tk.Tk):
         classpath = cp_sep.join(dict.fromkeys(cp_entries))
         main_cls = ver_json.get("mainClass","cpw.mods.modlauncher.Launcher")
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        #  PIRATE MODE — Legacy Launcher стиль
-        #  Ключевые флаги для обхода лицензии:
-        #  --userType legacy  → не msa/mojang, значит не проверяет лицензию
-        #  --accessToken 0    → fake токен (любая непустая строка)
-        #  --uuid <random>    → случайный UUID
-        #  НЕ передаём --demo → Demo Mode отключён
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         fake_uuid = str(uuid.uuid4()).replace("-","")
-        fake_token = "0" * 32  # 32 нуля — fake access token
+        fake_token = "0" * 32
 
         repl = {
             "${auth_player_name}":    uname,
@@ -2940,8 +3107,8 @@ class AngelsLauncher(tk.Tk):
             "${assets_root}":         str(ASSETS_DIR),
             "${assets_index_name}":   asset_idx_id,
             "${auth_uuid}":           fake_uuid,
-            "${auth_access_token}":   fake_token,   # fake, но непустой → не Demo
-            "${user_type}":           "legacy",      # ← КЛЮЧЕВОЙ ФЛАГ
+            "${auth_access_token}":   fake_token,
+            "${user_type}":           "legacy",
             "${version_type}":        "release",
             "${natives_directory}":   str(NATIVES_DIR),
             "${launcher_name}":       LAUNCHER_NAME,
@@ -2956,7 +3123,6 @@ class AngelsLauncher(tk.Tk):
             out = []
             for arg in ver_json.get("arguments",{}).get(sec,[]):
                 if isinstance(arg, str):
-                    # Фильтруем --demo флаг если он вдруг есть
                     resolved = resolve(arg)
                     if resolved != "--demo": out.append(resolved)
                 elif isinstance(arg, dict) and rule_allowed(arg.get("rules",[])):
@@ -2968,10 +3134,7 @@ class AngelsLauncher(tk.Tk):
 
         jvm_args = parse_args("jvm"); game_args = parse_args("game")
 
-        # Убеждаемся что в game args есть нужные флаги для пиратского режима
-        # Если их нет — добавляем вручную (как делает Legacy Launcher)
         def ensure_arg(args_list, flag, value=None):
-            """Добавляет флаг если его нет."""
             if flag not in args_list:
                 args_list.append(flag)
                 if value is not None: args_list.append(value)
@@ -2985,16 +3148,13 @@ class AngelsLauncher(tk.Tk):
             java,
             f"-Xmx{ram_mb}m", f"-Xms{min(ram_mb,512)}m", "-Xss4M",
             f"-Djava.library.path={NATIVES_DIR}",
-            # Полное отключение проверки Mojang аутентификации
             "-Dminecraft.api.auth.host=http://localhost/",
             "-Dminecraft.api.account.host=http://localhost/",
             "-Dminecraft.api.session.host=http://localhost/",
             "-Dminecraft.api.services.host=http://localhost/",
-            # Forge
             "-Dfml.ignoreInvalidMinecraftCertificates=true",
             "-Dfml.ignorePatchDiscrepancies=true",
             "-Dlog4j2.formatMsgNoLookups=true",
-            # Производительность
             "-XX:+UnlockExperimentalVMOptions","-XX:+UseG1GC",
             "-XX:G1NewSizePercent=20","-XX:G1ReservePercent=20",
             "-XX:MaxGCPauseMillis=50","-XX:G1HeapRegionSize=32M",
@@ -3010,7 +3170,7 @@ class AngelsLauncher(tk.Tk):
         cmd = base_jvm + jvm_args + cp_block + [main_cls] + game_args + srv_args
 
         self._log(f"◈  {uname}  ·  {self.ram.get()} ГБ  ·  {forge_id}", "accent")
-        self._log(f"   🏴‍☠️  userType=legacy  accessToken=<fake>  uuid={fake_uuid[:8]}...", "info")
+        self._log(f"   🏴‍☠️  userType=legacy  uuid={fake_uuid[:8]}...  🛡 DLL Fixed", "info")
         self._set_status("◈  Minecraft запущен!", 100); self._set_btn(False, "▸  ЗАПУЩЕН")
         self.eta_var.set(""); self.spd_var.set("")
 
