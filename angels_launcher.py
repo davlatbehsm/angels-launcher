@@ -19,7 +19,7 @@ Angels Launcher v14.0  —  Neon Edition
 #  CONFIG
 # ══════════════════════════════════════════════════════
 LAUNCHER_NAME = "Angels Launcher"
-LAUNCHER_VER  = "14.0.0"
+LAUNCHER_VER  = "14.1.0"
 MOD_NAME      = "Angels Mod"
 MOD_VERSION   = "1.2.0"
 MC_VERSION    = "1.16.5"
